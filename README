@@ -1,5 +1,5 @@
-Intro
-=====
+Introduction
+============
 
 This is pspi, a GIMP plug-in that interfaces to Photoshop filter plug-ins.
 
@@ -11,22 +11,27 @@ Solaris), using Wine (www.winehq.org) to aid in running the code in
 the Photoshop plug-in. (Or some similar commercial software.) (No, I
 have no idea how this would actually be implemented, it's just my
 intuition that tells me it might be possible to attach a Windows DLL
-to a Unix process using Wine.) If you make this work, please
-contribute back the changes.
+to a Unix process using Wine.) 
+
+Pspi also now uses g_markup* functionality to parse its settings
+file. I don't think GLib 1.2.x had that, so if you really intend to
+run this on Unix through Wine, you have to extract the g_markup*
+functions from GLib 1.3.x. If you make this work, please contribute
+back the changes. Happy hacking!
 
 Pspi requires a GIMP that implements the init_proc functionality in
 the GimpPlugInInfo struct. As of now (2001-12-20), only GIMP 1.2.3 on
 Windows does that. For the patch to GIMP 1.2.3 to implement it, see
 http://bugzilla.gnome.org/show_bug.cgi?id=66859.
 
-To build the plug-in, you will need the headers from the Adobe
-Photoshop SDK. It is freely available from Adobe, look around on
-Adobe's web site.
+To build pspi, you will need the headers from the Adobe Photoshop
+SDK. It is freely available from Adobe, look around on Adobe's web
+site.
 
 Debugging pspi
 ==============
 
-You can set the environment variable PSPI_DEBUG to have it print out
+You can set the environment variable PSPI_DEBUG to have pspi print out
 various debugging messages at run-time, for instance (in a Windows
 command prompt):
 
@@ -36,22 +41,31 @@ See the source code for other possible values. Obviously, this
 environment variable must be set before starting the GIMP (which
 eventually runs pspi).
 
+As pspi is a Windows GUI application, to actually see the debugging
+print-out, you have to start GIMP with stdout going somewhere, for
+instance:
+
+	gimp --verbose | cat
+
 Run-time setup
 ==============
 
-The plug-in has a search path consisting of folders where to search
-for Photoshop filter plug-ins, which are files with the extension
+Pspi has a search path consisting of folders where to search for
+Photoshop filter plug-ins, which are files with the extension
 .8BF. These folders are searched recursively.
 
-The plug-in stores info about the Photoshop plug-ins found in the
-user's gimprc file. The first time a .8BF file is noticed, pspi loads
-it and searches for the so-called "PIPL" resources, which contain some
-more information about the plug-in, for instance where it should be
-located in Photoshop's Filter menu. It gets a identical menu entry in
-GIMP's <Image>/Filter menu.
+Pspi stores info about the Photoshop plug-ins found in the pspirc file
+in the user's personal GIMP directory. The first time a .8BF file is
+noticed, pspi loads it and searches for the so-called "PIPL"
+resources, which contain some more information about the Photoshop
+plug-in, for instance where it should be located in Photoshop's Filter
+menu. It gets a identical menu entry in GIMP's <Image>/Filter menu.
 
 Unless the .8BF file changes, it isn't loaded on subsequent GIMP
 starts, but only when the filter is invoked.
+
+Also files with the extensions .EFF and .DLL are checked to see if
+they are Photoshop plug-ins.
 
 Reverse engineering
 ===================
@@ -59,20 +73,22 @@ Reverse engineering
 The hardest thing in writing this plug-in was figuring out the stuff
 in the Photoshop plug-in communication that isn't clearly
 documented. To make the reverse engineering easier, I wrote a "proxy"
-Photoshop plug-in, piproxy, that is linked with the resources of a
-real Photoshop plug-in (the "target") that has been moved away so that
-Photoshop won't find it. Thus piproxy gets loaded when the menu entry
-for the original plug-in is invoked. It then loads the original target
-plug-in, and starts passing calls back and forth between Photoshop and
-the target, while logging the stuff that passes through. It even
-works. I didn't bother to implement the more comples callback suites.
-If you intend to run piproxy, set the PIPROXY_LOG and PIPROXY_TARGET
-environment variables. See the source code.
+Photoshop plug-in, piproxy. The Windows resources of a real Photoshop
+plug-in (the "target") is copied to piproxy.8bf. The target should be
+moved away so that Photoshop won't find it, and instead piproxy.8bf
+shouild be put where Photoshop will find it.
 
-The piproxy sources are also used, but it does not get built by
+Thus, piproxy gets loaded when the menu entry for the original plug-in
+is invoked. It then loads the original target plug-in, and starts
+passing calls back and forth between Photoshop and the target, while
+logging the stuff that passes through. This works fine. If you intend
+to run piproxy, set the PIPROXY_LOG and PIPROXY_TARGET environment
+variables. See the source code.
+
+The piproxy sources are included, but it does not get built by
 default.
 
-After a week of evening hacking, the final breakthrough came when I
+After a week of late-evening hacking, the breakthrough came when I
 realized that the "Handle" type in the Photoshop API is used by some
 plug-ins in an undocumented way. Instead of treating a Handle as an
 opaque type, they "know" that a Handle in fact is a pointer to a

@@ -1,3 +1,34 @@
+2001-12-29  Tor Lillqvist  <tml@iki.fi>
+
+	* src\pspi.c: Lots of changes. Here are the most important: 
+
+	Keep track of the Handles we have allocated ourselves. In the
+	handle suite of functions, check if the Handle parameter is one of
+	those. If not, it might be a Windows HGLOBAL handle, or a pointer
+	to a HGLOBAL handle. If so, act accorgingly. Modify also the
+	saving and restoring of filter.parameters accordingly.
+
+	Some plug-ins pass HGLOBAL Windows handles to the handle
+	functions... Presumably they can get away with this because
+	Photoshop itself uses Windows HGLOBALs as Handles?
+	
+	Don't save and restore filter.parameters and data
+	unnecessarily. They should be saved only after the
+	filterSelectorParameters phase, and only need to be restored in
+	the "re-apply last filter" case, where we invoke the
+	filterSelectorPrepare phase right away. Use a global data
+	variable.
+	
+	Don't call filterSelectorFinish at all. Some plug-ins crash there,
+	and most plug-ins have done their useful job already in the
+	filterSelectorStart and filterSelectorContinue phases. As pspi is
+	a separate process that will terminate shortly afterwards anyway,
+	there is no resource leak risk.
+
+	* README: Update and improve.
+
+	* configure.in: Bump version number to 1.0.2.
+
 2001-12-28  Tor Lillqvist  <tml@iki.fi>
 
 	* src/main.c (init): Don't try to rename the pspirc file to

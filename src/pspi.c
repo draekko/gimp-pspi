@@ -50,8 +50,9 @@
 #define PRINT_RECT(r) g_print ("%d:%dx%d:%d", r.left, r.right, r.top, r.bottom)
 
 #define PSPI_PARAMETER_TOKEN "pspi-parameter-%s"
+#define PSPI_PARAMETER_HGLOBAL_TOKEN "pspi-parameter-hglobal-%s"
+#define PSPI_PARAMETER_HGLOBAL_PTR_TOKEN "pspi-parameter-hglobal-ptr-%s"
 #define PSPI_DATA_TOKEN "pspi-data-%s"
-
 
 /* To avoid 'multi-character character constant' warnings, we use this hack: */
 
@@ -79,6 +80,10 @@ typedef struct {
   guint size;
 } PspiHandle;
 
+typedef enum { NONE, PARAMETERS, PREPARE, START, FINISH } PspiPhase;
+
+static PspiPhase prev_phase = NONE;
+
 static BufferProcs *buffer_procs = NULL;
 static ChannelPortProcs *channel_port_procs = NULL;
 static PIDescriptorParameters *descriptor_parameters = NULL;
@@ -88,6 +93,8 @@ static PropertyProcs *property_procs = NULL;
 static ResourceProcs *resource_procs = NULL;
 static SPBasicSuite *basic_suite = NULL;
 
+static GHashTable *handles = NULL;
+
 /* Due to the strange design of the Photoshop API (no user data in
  * callbacks) we must keep state in global variables. Blecch.
  */
@@ -96,6 +103,7 @@ static GimpDrawable *drawable;
 static int32 image_id;
 static PlatformData platform;
 static FilterRecord filter;
+static int32 data;
 
 static char *
 int32_as_be_4c (int32 i)
@@ -220,6 +228,12 @@ channel_port_read_port_for_write_port_proc (ChannelReadPort *readPort,
   return errPlugInHostInsufficient;
 }
 
+static gboolean
+handle_valid (Handle h)
+{
+  return handles != NULL && g_hash_table_lookup (handles, h) != NULL;
+}
+
 static Handle
 handle_new_proc (int32 size)
 {
@@ -228,21 +242,74 @@ handle_new_proc (int32 size)
   result->size = size;
   PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %ld: %p, %p\n",
 				     size, result, result->pointer));
+  if (handles == NULL)
+    handles = g_hash_table_new (NULL, NULL);
+
+  g_hash_table_insert (handles, result, result->pointer);
+
   return (Handle) result;
 }
 
 static void
 handle_dispose_proc (Handle h)
 {
+  if (!handle_valid (h))
+    {
+      if (GlobalSize ((HGLOBAL) h) > 0)
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL!\n", h));
+	  GlobalFree ((HGLOBAL) h);
+	  return;
+	}
+      else if (!IsBadReadPtr (h, sizeof (HGLOBAL *)) &&
+	       GlobalSize (*(HGLOBAL *) h) > 0)
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL*!\n", h));
+	  GlobalFree (*(HGLOBAL *) h);
+	  return;
+	}
+      else
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p INVALID!\n", h));
+	  return;
+	}
+    }
+
   PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p, %p\n",
 				     h, ((PspiHandle *)h)->pointer));
   g_free (((PspiHandle *) h)->pointer);
   g_free ((PspiHandle *) h);
+  g_hash_table_remove (handles, h);
 }
 
 static int32
 handle_get_size_proc (Handle h)
 {
+  UINT size;
+
+  if (!handle_valid (h))
+    {
+      if ((size = GlobalSize ((HGLOBAL) h)) > 0)
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL!: %d\n",
+					     h, size));
+	  return size;
+	}
+      else if (!IsBadReadPtr (h, sizeof (HGLOBAL *)) &&
+	       (size = GlobalSize (*(HGLOBAL *) h)) > 0)
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL*!: %d\n",
+					     h, size));
+	  return size;
+	}
+      else
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p INVALID!\n", h));
+	  /* No idea... */
+	  return 0;
+	}
+    }
+  
   PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p: %d\n",
 				     h, ((PspiHandle *)h)->size));
   return ((PspiHandle *) h)->size;
@@ -252,6 +319,31 @@ static OSErr
 handle_set_size_proc (Handle h,
                       int32  newSize)
 {
+  if (!handle_valid (h))
+    {
+      if (GlobalSize ((HGLOBAL) h) > 0)
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL!, %ld\n",
+					     h, newSize));
+	  if (GlobalReAlloc ((HGLOBAL) h, newSize, 0) != (HGLOBAL) h)
+	    return nilHandleErr;
+	  return noErr;
+	}
+      else if (!IsBadReadPtr (h, sizeof (HGLOBAL *)) &&
+	       GlobalSize (*(HGLOBAL *) h) > 0)
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL*!\n", h));
+	  *((HGLOBAL *) h) = GlobalReAlloc (*(HGLOBAL *) h, newSize, 0);
+	  return noErr;
+	}
+      else
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p INVALID, %ld!\n",
+					     h, newSize));
+	  return nilHandleErr;
+	}
+    }
+
   ((PspiHandle *) h)->pointer = g_realloc (((PspiHandle *) h)->pointer, newSize);
   ((PspiHandle *) h)->size = newSize;
   PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p, %ld: %p\n",
@@ -263,6 +355,35 @@ static Ptr
 handle_lock_proc (Handle  h,
                   Boolean moveHigh)
 {
+  if (!handle_valid (h))
+    {
+      if (GlobalSize ((HGLOBAL) h) > 0)
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL!\n", h));
+	  return GlobalLock ((HGLOBAL) h);
+	}
+      else if (!IsBadReadPtr (h, sizeof (HGLOBAL *)) &&
+	       GlobalSize (*(HGLOBAL *) h) > 0)
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL*!\n", h));
+	  return GlobalLock (*(HGLOBAL *) h);
+	}
+      else
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p INVALID!\n", h));
+	  /* Guess that it still is a pointer to a pointer, sigh... */
+	  if (!IsBadReadPtr (h, sizeof (gpointer)) &&
+	      !IsBadWritePtr (*(gpointer *) h, 8))
+	    {
+	      PSPI_DEBUG (HANDLE_SUITE, g_print ("  pointer-to-pointer? %p\n",
+						 * (Ptr *) h));
+	      return *(Ptr *) h;
+	    }
+	  else
+	    return NULL;		/* Burn, baby, burn */
+	}
+    }
+  
   PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p: %p\n",
 				     h, ((PspiHandle *)h)->pointer));
   return ((PspiHandle *) h)->pointer;
@@ -271,6 +392,28 @@ handle_lock_proc (Handle  h,
 static void
 handle_unlock_proc (Handle h)
 {
+  if (!handle_valid (h))
+    {
+      if (GlobalSize ((HGLOBAL) h) > 0)
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL!\n", h));
+	  GlobalUnlock ((HGLOBAL) h);
+	  return;
+	}	
+      else if (!IsBadReadPtr (h, sizeof (HGLOBAL *)) &&
+	       GlobalSize (*(HGLOBAL *) h) > 0)
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL*!\n", h));
+	  GlobalUnlock (*(HGLOBAL *) h);
+	  return;
+	}
+      else
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p INVALID!\n", h));
+	  return;
+	}
+    }
+ 
   PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p, %p\n",
 				     h, ((PspiHandle *)h)->pointer));
 }
@@ -284,9 +427,31 @@ handle_recover_space_proc (int32 size)
 static void
 handle_dispose_regular_proc (Handle h)
 {
-  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p\n", h));
-
   /* FIXME: What is this supposed to do? */ 
+
+  if (!handle_valid (h))
+    {
+      if (GlobalSize ((HGLOBAL) h) > 0)
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL!\n", h));
+	  GlobalFree ((HGLOBAL) h);
+	  return;
+	}
+      else if (!IsBadReadPtr (h, sizeof (HGLOBAL *)) &&
+	       GlobalSize (*(HGLOBAL *) h) > 0)
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL*!\n", h));
+	  GlobalFree (*(HGLOBAL *) h);
+	  return;
+	}
+      else
+	{
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p INVALID!\n", h));
+	  return;
+	}
+    }
+ 
+  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p\n", h));
 }
 
 static OSErr
@@ -1318,92 +1483,75 @@ query_8bf (const gchar       *file,
 static void
 setup_suites (void)
 {
-  if (buffer_procs == NULL)
-    {
-      buffer_procs = g_new (BufferProcs, 1);
-      buffer_procs->bufferProcsVersion = kCurrentBufferProcsVersion;
-      buffer_procs->numBufferProcs = kCurrentBufferProcsCount;
-      buffer_procs->allocateProc = buffer_allocate_proc;
-      buffer_procs->lockProc = buffer_lock_proc;
-      buffer_procs->unlockProc = buffer_unlock_proc;
-      buffer_procs->freeProc = buffer_free_proc;
-      buffer_procs->spaceProc = buffer_space_proc;
-    }
+  static gboolean beenhere = FALSE;
 
-  if (channel_port_procs == NULL)
-    {
-      channel_port_procs = g_new (ChannelPortProcs, 1);
-      channel_port_procs->channelPortProcsVersion = kCurrentChannelPortProcsVersion;
-      channel_port_procs->numChannelPortProcs = kCurrentChannelPortProcsCount;
-      channel_port_procs->readPixelsProc = channel_port_read_pixels_proc;
-      channel_port_procs->writeBasePixelsProc = channel_port_write_base_pixels_proc;
-      channel_port_procs->readPortForWritePortProc = channel_port_read_port_for_write_port_proc;
-    }
+  if (beenhere)
+    return;
 
-  if (descriptor_parameters == NULL)
-    {
-      descriptor_parameters = g_new (PIDescriptorParameters, 1);
-      descriptor_parameters->descriptorParametersVersion = kCurrentDescriptorParametersVersion;
-      /* XXX */
-    }
+  beenhere = TRUE;
 
-  if (handle_procs == NULL)
-    {
-      handle_procs = g_new (HandleProcs, 1);
-      handle_procs->handleProcsVersion = kCurrentHandleProcsVersion;
-      handle_procs->numHandleProcs = kCurrentHandleProcsCount;
-      handle_procs->newProc = handle_new_proc;
-      handle_procs->disposeProc = handle_dispose_proc;
-      handle_procs->getSizeProc = handle_get_size_proc;
-      handle_procs->setSizeProc = handle_set_size_proc;
-      handle_procs->lockProc = handle_lock_proc;
-      handle_procs->unlockProc = handle_unlock_proc;
-      handle_procs->recoverSpaceProc = handle_recover_space_proc;
-      handle_procs->disposeRegularHandleProc = handle_dispose_regular_proc;
-    }
+  buffer_procs = g_new (BufferProcs, 1);
+  buffer_procs->bufferProcsVersion = kCurrentBufferProcsVersion;
+  buffer_procs->numBufferProcs = kCurrentBufferProcsCount;
+  buffer_procs->allocateProc = buffer_allocate_proc;
+  buffer_procs->lockProc = buffer_lock_proc;
+  buffer_procs->unlockProc = buffer_unlock_proc;
+  buffer_procs->freeProc = buffer_free_proc;
+  buffer_procs->spaceProc = buffer_space_proc;
 
-  if (image_services_procs == NULL)
-    {
-      image_services_procs = g_new (ImageServicesProcs, 1);
-      image_services_procs->imageServicesProcsVersion = kCurrentImageServicesProcsVersion;
-      image_services_procs->numImageServicesProcs = kCurrentImageServicesProcsCount;
-      image_services_procs->interpolate1DProc = image_services_interpolate_1d_proc;
-      image_services_procs->interpolate2DProc = image_services_interpolate_2d_proc;
-      image_services_procs->interpolate1DMultiProc = image_services_interpolate_1d_multi_proc;
-      image_services_procs->interpolate2DMultiProc = image_services_interpolate_2d_multi_proc;
-    }
+  channel_port_procs = g_new (ChannelPortProcs, 1);
+  channel_port_procs->channelPortProcsVersion = kCurrentChannelPortProcsVersion;
+  channel_port_procs->numChannelPortProcs = kCurrentChannelPortProcsCount;
+  channel_port_procs->readPixelsProc = channel_port_read_pixels_proc;
+  channel_port_procs->writeBasePixelsProc = channel_port_write_base_pixels_proc;
+  channel_port_procs->readPortForWritePortProc = channel_port_read_port_for_write_port_proc;
 
-  if (property_procs == NULL)
-    {
-      property_procs = g_new (PropertyProcs, 1);
-      property_procs->propertyProcsVersion = kCurrentPropertyProcsVersion;
-      property_procs->numPropertyProcs = kCurrentPropertyProcsCount;
-      property_procs->getPropertyProc = property_get_proc;
-      property_procs->setPropertyProc = property_set_proc;
-    }
+  descriptor_parameters = g_new (PIDescriptorParameters, 1);
+  descriptor_parameters->descriptorParametersVersion = kCurrentDescriptorParametersVersion;
+  /* XXX */
 
-  if (resource_procs == NULL)
-    {
-      resource_procs = g_new (ResourceProcs, 1);
-      resource_procs->resourceProcsVersion = kCurrentResourceProcsVersion;
-      resource_procs->numResourceProcs = kCurrentResourceProcsCount;
-      resource_procs->countProc = resource_count_proc;
-      resource_procs->getProc = resource_get_proc;
-      resource_procs->deleteProc = resource_delete_proc;
-      resource_procs->addProc = resource_add_proc;
-    }
+  handle_procs = g_new (HandleProcs, 1);
+  handle_procs->handleProcsVersion = kCurrentHandleProcsVersion;
+  handle_procs->numHandleProcs = kCurrentHandleProcsCount;
+  handle_procs->newProc = handle_new_proc;
+  handle_procs->disposeProc = handle_dispose_proc;
+  handle_procs->getSizeProc = handle_get_size_proc;
+  handle_procs->setSizeProc = handle_set_size_proc;
+  handle_procs->lockProc = handle_lock_proc;
+  handle_procs->unlockProc = handle_unlock_proc;
+  handle_procs->recoverSpaceProc = handle_recover_space_proc;
+  handle_procs->disposeRegularHandleProc = handle_dispose_regular_proc;
 
-  if (basic_suite == NULL)
-    {
-      basic_suite = g_new (SPBasicSuite, 1);
-      basic_suite->AcquireSuite = SPBasicAcquireSuite;
-      basic_suite->ReleaseSuite = SPBasicReleaseSuite;
-      basic_suite->IsEqual = SPBasicIsEqual;
-      basic_suite->AllocateBlock = SPBasicAllocateBlock;
-      basic_suite->FreeBlock = SPBasicFreeBlock;
-      basic_suite->ReallocateBlock = SPBasicReallocateBlock;
-      basic_suite->Undefined = SPBasicUndefined;
-    }
+  image_services_procs = g_new (ImageServicesProcs, 1);
+  image_services_procs->imageServicesProcsVersion = kCurrentImageServicesProcsVersion;
+  image_services_procs->numImageServicesProcs = kCurrentImageServicesProcsCount;
+  image_services_procs->interpolate1DProc = image_services_interpolate_1d_proc;
+  image_services_procs->interpolate2DProc = image_services_interpolate_2d_proc;
+  image_services_procs->interpolate1DMultiProc = image_services_interpolate_1d_multi_proc;
+  image_services_procs->interpolate2DMultiProc = image_services_interpolate_2d_multi_proc;
+
+  property_procs = g_new (PropertyProcs, 1);
+  property_procs->propertyProcsVersion = kCurrentPropertyProcsVersion;
+  property_procs->numPropertyProcs = kCurrentPropertyProcsCount;
+  property_procs->getPropertyProc = property_get_proc;
+  property_procs->setPropertyProc = property_set_proc;
+
+  resource_procs = g_new (ResourceProcs, 1);
+  resource_procs->resourceProcsVersion = kCurrentResourceProcsVersion;
+  resource_procs->numResourceProcs = kCurrentResourceProcsCount;
+  resource_procs->countProc = resource_count_proc;
+  resource_procs->getProc = resource_get_proc;
+  resource_procs->deleteProc = resource_delete_proc;
+  resource_procs->addProc = resource_add_proc;
+
+  basic_suite = g_new (SPBasicSuite, 1);
+  basic_suite->AcquireSuite = SPBasicAcquireSuite;
+  basic_suite->ReleaseSuite = SPBasicReleaseSuite;
+  basic_suite->IsEqual = SPBasicIsEqual;
+  basic_suite->AllocateBlock = SPBasicAllocateBlock;
+  basic_suite->FreeBlock = SPBasicFreeBlock;
+  basic_suite->ReallocateBlock = SPBasicReallocateBlock;
+  basic_suite->Undefined = SPBasicUndefined;
 }
 
 static void
@@ -1414,6 +1562,8 @@ setup_filter_record (void)
 
   if (beenhere)
     return;
+
+  beenhere = TRUE;
 
   platform.hwnd = 0;
 
@@ -1634,21 +1784,50 @@ load_dll (PSPlugInEntry *pspie)
 }
 
 static void
-save_stuff (const PSPlugInEntry *pspie,
-            int32                data)
+save_stuff (const PSPlugInEntry *pspie)
 {
   gchar *token;
   gint size;
 
   if (filter.parameters != NULL)
     {
-      token = g_strdup_printf (PSPI_PARAMETER_TOKEN, pspie->pdb_name);
-      size = handle_get_size_proc ((Handle) filter.parameters);
-      PSPI_DEBUG (CALL, g_print ("Saving parameter: %d bytes\n", size));
-      gimp_set_data (token,
-		     handle_lock_proc ((Handle) filter.parameters, FALSE),
-		     size);
-      g_free (token);
+      if (handle_valid (filter.parameters))
+	{
+	  token = g_strdup_printf (PSPI_PARAMETER_TOKEN, pspie->pdb_name);
+	  size = handle_get_size_proc ((Handle) filter.parameters);
+	  PSPI_DEBUG (CALL, g_print ("Saving parameters: %d bytes\n", size));
+	  gimp_set_data (token,
+			 handle_lock_proc ((Handle) filter.parameters, TRUE),
+			 size);
+	  g_free (token);
+	  handle_unlock_proc ((Handle) filter.parameters);
+	}
+      else if ((size = GlobalSize ((HGLOBAL) filter.parameters)) > 0)
+	{
+	  token = g_strdup_printf (PSPI_PARAMETER_HGLOBAL_TOKEN,
+				   pspie->pdb_name);
+	  PSPI_DEBUG (CALL,
+		      g_print ("Saving HGLOBAL parameters: %p %d bytes\n",
+			       filter.parameters, size));
+	  gimp_set_data (token,
+			 GlobalLock ((HGLOBAL) filter.parameters),
+			 size);
+	  g_free (token);
+	  GlobalUnlock ((HGLOBAL) filter.parameters);
+	}
+      else if (!IsBadReadPtr (filter.parameters, sizeof (HGLOBAL *)) &&
+	       (size = GlobalSize (*(HGLOBAL *) filter.parameters)) > 0)
+	{
+	  token = g_strdup_printf (PSPI_PARAMETER_HGLOBAL_PTR_TOKEN, pspie->pdb_name);
+	  PSPI_DEBUG (CALL,
+		      g_print ("Saving HGLOBAL* parameters: %p %d bytes\n",
+			       *(HGLOBAL *) filter.parameters, size));
+	  gimp_set_data (token,
+			 GlobalLock (*(HGLOBAL *) filter.parameters),
+			 size);
+	  g_free (token);
+	  GlobalUnlock (*(HGLOBAL *) filter.parameters);
+	}
     }
 
   PSPI_DEBUG (CALL, g_print ("Saving data %#lx\n", data));
@@ -1658,33 +1837,68 @@ save_stuff (const PSPlugInEntry *pspie,
 }
 
 static void
-restore_stuff (const PSPlugInEntry *pspie,
-               int32               *data)
+restore_stuff (const PSPlugInEntry *pspie)
 {
-  gchar *token;
+  gchar *token, *token2, *token3;
   gint size;
 
+  /* If this is not re-application of last filter, just keep whatever there
+   * is in the filter record.
+   */
+  if (prev_phase == PARAMETERS)
+    return;
+
   token = g_strdup_printf (PSPI_PARAMETER_TOKEN, pspie->pdb_name);
-  size = gimp_get_data_size (token);
-  if (size <= 0)
-    filter.parameters = NULL;
-  else
+  token2 = g_strdup_printf (PSPI_PARAMETER_HGLOBAL_TOKEN, pspie->pdb_name);
+  token3 = g_strdup_printf (PSPI_PARAMETER_HGLOBAL_PTR_TOKEN, pspie->pdb_name);
+
+  if ((size = gimp_get_data_size (token)) > 0)
     {
-      PSPI_DEBUG (CALL, g_print ("Restoring parameter: %d bytes\n", size));
+      PSPI_DEBUG (CALL, g_print ("Restoring parameters: %d bytes\n", size));
       filter.parameters = handle_new_proc (size);
-      gimp_get_data (token, filter.parameters);
+      gimp_get_data (token,
+		     handle_lock_proc ((Handle) filter.parameters, TRUE));
+      handle_unlock_proc ((Handle) filter.parameters);
     }
+  else if ((size = gimp_get_data_size (token2)) > 0)
+    {
+      filter.parameters = GlobalAlloc (GMEM_MOVEABLE, size);
+      PSPI_DEBUG (CALL,
+		  g_print ("Restoring HGLOBAL parameters: %d bytes: %p\n",
+			   size,
+			   filter.parameters));
+      gimp_get_data (token2,
+		     GlobalLock ((HGLOBAL) filter.parameters));
+      GlobalUnlock ((HGLOBAL) filter.parameters);
+    }
+  else if ((size = gimp_get_data_size (token3)) > 0)
+    {
+      filter.parameters = (Handle) g_new (HGLOBAL, 1);
+      *((HGLOBAL *) filter.parameters) = GlobalAlloc (GMEM_MOVEABLE, size);
+      PSPI_DEBUG (CALL,
+		  g_print ("Restoring HGLOBAL* parameters: %d bytes: %p\n",
+			   size,
+			   *(HGLOBAL *) filter.parameters));
+      gimp_get_data (token3,
+		     GlobalLock (*(HGLOBAL *) filter.parameters));
+      GlobalUnlock (*(HGLOBAL *) filter.parameters);
+    }
+  else
+    filter.parameters = NULL;
+  
   g_free (token);
+  g_free (token2);
+  g_free (token3);
 
   token = g_strdup_printf (PSPI_DATA_TOKEN, pspie->pdb_name);
   size = gimp_get_data_size (token);
   if (size == sizeof (int32))
     {
-      gimp_get_data (token, data);
-      PSPI_DEBUG (CALL, g_print ("Restored data %#lx\n", *data));
+      gimp_get_data (token, &data);
+      PSPI_DEBUG (CALL, g_print ("Restored data %#lx\n", data));
     }
   else
-    *data = 0;
+    data = 0;
   g_free (token);
 }
 
@@ -1694,7 +1908,6 @@ pspi_about (PSPlugInEntry *pspie)
   AboutRecord about;
   GimpPDBStatusType status;
   GList *list;
-  int32 data = 0;
   int16 result;
 
   if ((status = load_dll (pspie)) != GIMP_PDB_SUCCESS)
@@ -1720,6 +1933,8 @@ pspi_about (PSPlugInEntry *pspie)
       result = noErr;
       PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorAbout\n"));
       (*pspie->entry->ep) (filterSelectorAbout, &about, &data, &result);
+      PSPI_DEBUG (CALL, g_print (G_STRLOC ": after filterSelectorAbout: %d\n",
+				 result));
       if (result != noErr)
 	{
 	  FreeLibrary (pspie->entry->dll);
@@ -1735,7 +1950,6 @@ GimpPDBStatusType
 pspi_params (PSPlugInEntry *pspie)
 {
   GimpPDBStatusType status;
-  int32 data = 0;
   int16 result;
 
   if ((status = load_dll (pspie)) != GIMP_PDB_SUCCESS)
@@ -1747,13 +1961,17 @@ pspi_params (PSPlugInEntry *pspie)
   result = noErr;
   PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorParameters\n"));
   (*pspie->entry->ep) (filterSelectorParameters, &filter, &data, &result);
+  PSPI_DEBUG (CALL, g_print (G_STRLOC ": after filterSelectorParameters: %d\n",
+			     result));
   if (result != noErr)
     {
       FreeLibrary (pspie->entry->dll);
       return error_message (result, "filterSelectorParameters");
     }
 
-  save_stuff (pspie, data);
+  save_stuff (pspie);
+
+  prev_phase = PARAMETERS;
 
   return GIMP_PDB_SUCCESS;
 }
@@ -1764,7 +1982,6 @@ pspi_prepare (PSPlugInEntry *pspie,
 {
   GimpImageType image_type;
   GimpPDBStatusType status;
-  int32 data;
   int16 result;
 
   /* Set globals, yecch */
@@ -1780,7 +1997,7 @@ pspi_prepare (PSPlugInEntry *pspie,
   setup_filter_record ();
   setup_sizes ();
 
-  restore_stuff (pspie, &data);
+  restore_stuff (pspie);
 
   filter.isFloating = gimp_drawable_is_layer (drawable->id) && gimp_layer_is_floating_selection (drawable->id);
   if (filter.isFloating) PSPI_DEBUG (CALL, g_print ("isFloating TRUE\n"));
@@ -1847,13 +2064,15 @@ pspi_prepare (PSPlugInEntry *pspie,
   result = noErr;
   PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorPrepare\n"));
   (*pspie->entry->ep) (filterSelectorPrepare, &filter, &data, &result);
+  PSPI_DEBUG (CALL, g_print (G_STRLOC ": after filterSelectorPrepare: %d\n",
+			     result));
   if (result != noErr)
     {
       FreeLibrary (pspie->entry->dll);
       return error_message (result, "filterSelectorPrepare");
     }
 
-  save_stuff (pspie, data);
+  prev_phase = PREPARE;
 
   return GIMP_PDB_SUCCESS;
 }
@@ -1862,58 +2081,62 @@ GimpPDBStatusType
 pspi_apply (const PSPlugInEntry *pspie,
             GimpDrawable        *dr)
 {
-  int32 data;
   int16 result;
 
   g_assert (drawable == dr);
-  g_assert (buffer_procs != NULL);
-
-  restore_stuff (pspie, &data);
-  setup_sizes ();
+  g_assert (prev_phase == PREPARE);
 
   result = noErr;
   PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorStart\n"));
   (*pspie->entry->ep) (filterSelectorStart, &filter, &data, &result);
-
+  PSPI_DEBUG (CALL, g_print (G_STRLOC ": after filterSelectorStart: %d\n",
+			     result));
   if (result != noErr)
     {
       FreeLibrary (pspie->entry->dll);
       return error_message (result, "filterSelectorStart");
     }
 
-  if (RECT_NONEMPTY (filter.inRect)
-      || RECT_NONEMPTY (filter.outRect))
+  while (RECT_NONEMPTY (filter.inRect)
+	 || RECT_NONEMPTY (filter.outRect)
+	 || (filter.haveMask && RECT_NONEMPTY (filter.maskRect)))
     {
-      while (RECT_NONEMPTY (filter.inRect)
-	     || RECT_NONEMPTY (filter.outRect)
-	     || (filter.haveMask && RECT_NONEMPTY (filter.maskRect)))
-	{
-	  advance_state_proc ();
-	  result = noErr;
-	  PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorContinue\n"));
-	  (*pspie->entry->ep) (filterSelectorContinue, &filter, &data, &result);
-	  
-	  if (result != noErr)
-	    {       
-	      FreeLibrary (pspie->entry->dll);
-	      return error_message (result, "filterSelectorContinue");
-	    }
-	}
       advance_state_proc ();
-    }
+      result = noErr;
+      PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorContinue\n"));
+      (*pspie->entry->ep) (filterSelectorContinue, &filter, &data, &result);
+      PSPI_DEBUG (CALL, g_print (G_STRLOC ": after filterSelectorContinue: %d\n",
+				 result));
+      
+      if (result != noErr)
+	{       
+	  int16 saved_result = result;
 
+	  result = noErr;
+	  PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorFinish\n"));
+	  (*pspie->entry->ep) (filterSelectorFinish, &filter, &data, &result);
+	  PSPI_DEBUG (CALL, g_print (G_STRLOC ": after filterSelectorFinish: %d\n",
+				     result));
+	  FreeLibrary (pspie->entry->dll);
+	  return error_message (saved_result, "filterSelectorContinue");
+	}
+    }
+  advance_state_proc ();
+
+#if 0
+  /* Some plug-ins crash in filterSelectorFinish. Skip it altogether...? */
   result = noErr;
   PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorFinish\n"));
   (*pspie->entry->ep) (filterSelectorFinish, &filter, &data, &result);
   PSPI_DEBUG (CALL, g_print (G_STRLOC ": after filterSelectorFinish: %d\n",
-			     result));
+    		     result));
   if (result != noErr)
     {
       FreeLibrary (pspie->entry->dll);
       return error_message (result, "filterSelectorFinish");
     }
-  
+#endif
+
   FreeLibrary (pspie->entry->dll);
   return GIMP_PDB_SUCCESS;
 }
-

@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 if OS_WIN32
-## mwindows = -mwindows
+mwindows = -mwindows
 endif
 
 bindir = $(GIMP_LIBDIR)/plug-ins

@@ -153,7 +153,7 @@ image_mode_string (int image_mode)
     CASE (plugInModeDuotone16);
 #undef CASE
     default:
-      sprintf (s, "plugInMode???(%d)", image_mode);
+      sprintf (s, "plugInMode?? (%d)", image_mode);
       return s;
     }
 }
@@ -535,7 +535,7 @@ property_get_proc (PIType  signature,
 	  g_free (channels);
 	  return errPlugInPropertyUndefined;
 	}
-      channel_name = gimp_channel_get_name (channels[index]);
+      channel_name = gimp_drawable_get_name (channels[index]);
       g_free (channels);
       *complexProperty = handle_new_proc (strlen (channel_name));
       p = handle_lock_proc (*complexProperty, TRUE);
@@ -1452,6 +1452,8 @@ query_8bf (const gchar       *file,
   HINSTANCE dll;
   EnumArg *arg; 
 
+  PSPI_DEBUG (PSPIRC, g_print ("Trying %s\n", file));
+
   if ((dll = LoadLibrary (file)) == NULL)
     {
       g_message (_("pspi: LoadLibrary() failed for %s: %s"),
@@ -1559,6 +1561,7 @@ setup_filter_record (void)
 {
   static gboolean beenhere = FALSE;
   guchar red, green, blue;
+  GimpRGB back, fore;
 
   if (beenhere)
     return;
@@ -1571,15 +1574,17 @@ setup_filter_record (void)
   filter.abortProc = abort_proc;
   filter.progressProc = progress_proc;
   filter.parameters = NULL;
-  gimp_palette_get_background (&red, &green, &blue);
+  gimp_palette_get_background (&back);
+  gimp_rgb_get_uchar (&back, &red, &green, &blue);
   filter.background.red = (red * 65535) / 255;
   filter.background.green = (green * 65535) / 255;
   filter.background.blue = (blue * 65535) / 255;
   filter.backColor[0] = red;
   filter.backColor[1] = green;
   filter.backColor[2] = blue;
-  filter.backColor[2] = 0xFF;
-  gimp_palette_get_foreground (&red, &green, &blue);
+  filter.backColor[3] = 0xFF;
+  gimp_palette_get_foreground (&fore);
+  gimp_rgb_get_uchar (&fore, &red, &green, &blue);
   filter.foreground.red = (red * 65535) / 255;
   filter.foreground.green = (green * 65535) / 255;
   filter.foreground.blue = (blue * 65535) / 255;
@@ -1661,7 +1666,7 @@ setup_sizes (void)
   filter.imageSize.h = drawable->width;
   filter.imageSize.v = drawable->height;
   filter.planes = drawable->bpp;
-  gimp_drawable_mask_bounds (drawable->id, &x1, &y1, &x2, &y2);
+  gimp_drawable_mask_bounds (drawable->drawable_id, &x1, &y1, &x2, &y2);
   filter.filterRect.top = y1;
   filter.filterRect.left = x1;
   filter.filterRect.bottom = y2;
@@ -1770,8 +1775,9 @@ load_dll (PSPlugInEntry *pspie)
       return GIMP_PDB_EXECUTION_ERROR;
     }
   
-  pspie->entry->ep = GetProcAddress (pspie->entry->dll,
-                                     pspie->entrypoint_name);
+  pspie->entry->ep = (int (CALLBACK *)(short, void *, long *, int16*))
+     GetProcAddress (pspie->entry->dll, pspie->entrypoint_name);
+
   if (pspie->entry->ep == NULL)
     {
       g_message (_("pspi: GetProcAddress(%s,%s) failed: %s"),
@@ -1986,9 +1992,9 @@ pspi_prepare (PSPlugInEntry *pspie,
 
   /* Set globals, yecch */
   drawable = dr;
-  image_id = gimp_drawable_image (drawable->id);
+  image_id = gimp_drawable_get_image (drawable->drawable_id);
  
-  image_type = gimp_drawable_type (drawable->id);
+  image_type = gimp_drawable_type (drawable->drawable_id);
 
   if ((status = load_dll (pspie)) != GIMP_PDB_SUCCESS)
     return status;
@@ -1999,7 +2005,7 @@ pspi_prepare (PSPlugInEntry *pspie,
 
   restore_stuff (pspie);
 
-  filter.isFloating = gimp_drawable_is_layer (drawable->id) && gimp_layer_is_floating_selection (drawable->id);
+  filter.isFloating = gimp_drawable_is_layer (drawable->drawable_id) && gimp_layer_is_floating_sel (drawable->drawable_id);
   if (filter.isFloating) PSPI_DEBUG (CALL, g_print ("isFloating TRUE\n"));
   filter.haveMask = FALSE;      /* ??? */
   filter.autoMask = FALSE;      /* ??? */

@@ -13,17 +13,6 @@ have no idea how this would actually be implemented, it's just my
 intuition that tells me it might be possible to attach a Windows DLL
 to a Unix process using Wine.) 
 
-Pspi also now uses g_markup* functionality to parse its settings
-file. I don't think GLib 1.2.x had that, so if you really intend to
-run this on Unix through Wine, you have to extract the g_markup*
-functions from GLib 1.3.x. If you make this work, please contribute
-back the changes. Happy hacking!
-
-Pspi requires a GIMP that implements the init_proc functionality in
-the GimpPlugInInfo struct. As of now (2001-12-20), only GIMP 1.2.3 on
-Windows does that. For the patch to GIMP 1.2.3 to implement it, see
-http://bugzilla.gnome.org/show_bug.cgi?id=66859.
-
 To build pspi, you will need the headers from the Adobe Photoshop
 SDK. It is freely available from Adobe, look around on Adobe's web
 site.
@@ -46,6 +35,9 @@ print-out, you have to start GIMP with stdout going somewhere, for
 instance:
 
 	gimp --verbose | cat
+
+This stdout redirection will be inherited by GIMP's children, like
+pspi.
 
 Run-time setup
 ==============

@@ -1,6 +1,15 @@
+2004-04-11  Tor Lillqvist  <tml@iki.fi>
+
+	* Lots of files: Modifications for GIMP 2.0 (after looking at
+	gimp-plugin-template for inspiration). Bump version to 1.0.3. No
+	real changes to functionality.
+	
+	* src/makefile.msvc: Remove, unmaintained.
+	* src/Makefile.am: Don't distribute it.
+
 2001-12-29  Tor Lillqvist  <tml@iki.fi>
 
-	* src\pspi.c: Lots of changes. Here are the most important: 
+	* src/pspi.c: Lots of changes. Here are the most important: 
 
 	Keep track of the Handles we have allocated ourselves. In the
 	handle suite of functions, check if the Handle parameter is one of

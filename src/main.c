@@ -56,16 +56,14 @@
 
 static void   init  (void);
 static void   query (void);
-static void   run   (gchar      *name,
-		     gint        nparams,
-		     GimpParam  *param,
-		     gint       *nreturn_vals,
-		     GimpParam **return_vals);
+static void   run   (const gchar     *name,
+		     gint             nparams,
+		     const GimpParam *param,
+		     gint      	     *nreturn_vals,
+		     GimpParam 	    **return_vals);
 
 
 gint debug_mask = 0;
-
-gboolean pspi_settings_dialog_ok;
 
 GHashTable *handle_hash;
 
@@ -207,6 +205,7 @@ save_pspirc_entry (gpointer key,
   fprintf (pspirc, "  <ps-plug-in path=\"%s\" timestamp=\"%d\">\n",
 	   pspi->location, pspi->timestamp);
 
+  PSPI_DEBUG (PSPIRC, g_print (" %s", pspi->location));
   while (list != NULL)
     {
       pspie = list->data;
@@ -382,6 +381,7 @@ my_ftw (const gchar *path,
 
   if (dir == NULL)
     {
+      PSPI_DEBUG (PSPIRC, g_print ("opendir(%s) failed: %s\n", path, g_strerror (errno))); 
       if (errno == EACCES)
 	return 0;
       return -1;
@@ -396,18 +396,15 @@ my_ftw (const gchar *path,
 	  strcmp (dir_ent->d_name, "..") == 0)
 	continue;
 
-      file = g_strconcat (path, dir_ent->d_name, NULL);
+      file = g_strconcat (path, G_DIR_SEPARATOR_S,  dir_ent->d_name, NULL);
+
       if (stat (file, &s) == 0)
 	{
 	  gint retval;
 
 	  retval = (*function) (file, &s);
 	  if (retval == 0 && (s.st_mode & _S_IFDIR))
-	    {
-	      gchar *dirname = g_strconcat (file, G_DIR_SEPARATOR_S, NULL);
-	      retval = my_ftw (dirname, function);
-	      g_free (dirname);
-	    }
+	    retval = my_ftw (file, function);
 
 	  if (retval != 0)
 	    {
@@ -418,13 +415,17 @@ my_ftw (const gchar *path,
 	      return retval;
 	    }
 	}
-      else if (errno != EACCES)
+      else
 	{
-	  int saved_errno = errno;
-	  g_free (file);
-	  closedir (dir);
-	  errno = saved_errno;
-	  return -1;
+	  PSPI_DEBUG (PSPIRC, g_print ("stat(%s) failed: %s\n", file, g_strerror (errno)));
+	  if (errno != EACCES)
+	    {
+	      int saved_errno = errno;
+	      g_free (file);
+	      closedir (dir);
+	      errno = saved_errno;
+	      return -1;
+	    }
 	}
       g_free (file);
     }
@@ -441,6 +442,9 @@ install_pdb (gchar       *pdb_name,
   gchar *blurb, *menu_path2, *pdb_name2;
 
   blurb = g_strdup_printf ("Photoshop plug-in %s", file);
+
+  PSPI_DEBUG (PSPIRC, g_print ("Installing %s on %s\n", pdb_name, menu_path));
+
   gimp_install_procedure (pdb_name,
 			  blurb,
 			  "",
@@ -459,7 +463,10 @@ install_pdb (gchar       *pdb_name,
   menu_path2 = g_strconcat (_("<Toolbox>/Help/About Photoshop plug-ins/"), menu_path + strlen (FILTER_MENU_PREFIX), NULL);
   if (strcmp (menu_path2 + strlen (menu_path2) - 3, "...") == 0)
     menu_path2[strlen (menu_path2) - 3] = '\0';
-  blurb = g_strdup_printf ("About Photoshop plug-in %s", file);
+  blurb = g_strdup_printf (_("About Photoshop plug-in %s"), file);
+
+  PSPI_DEBUG (PSPIRC, g_print ("Installing %s on %s\n", pdb_name2, menu_path2));
+
   gimp_install_procedure (pdb_name2,
 			  blurb,
 			  "",
@@ -468,9 +475,9 @@ install_pdb (gchar       *pdb_name,
 			  "",
 			  menu_path2,
 			  "",
-			  GIMP_EXTENSION,
+			  GIMP_PLUGIN,
 			  1, 0,
-			  standard_args, 0);
+			  standard_args, NULL);
   g_free (blurb);
   g_free (menu_path2);
 }
@@ -482,10 +489,10 @@ scan_filter (const gchar       *file,
   gchar *suffix = strrchr (file, '.');
 
   if (suffix != NULL &&
-      (g_strcasecmp (suffix, ".8bf") == 0 ||
+      (g_ascii_strcasecmp (suffix, ".8bf") == 0 ||
        /* Jernej Simoncic says also these suffixes are used. */
-       g_strcasecmp (suffix, ".eff") == 0 ||
-       g_strcasecmp (suffix, ".dll") == 0))
+       g_ascii_strcasecmp (suffix, ".eff") == 0 ||
+       g_ascii_strcasecmp (suffix, ".dll") == 0))
     {
       /* If it hasn't changed since last time, no need
        * to query it again.
@@ -550,7 +557,7 @@ setup_debug_mask (void)
 	  gchar *colon = strchr (p, ':');
 	  if (colon != NULL)
 	    *colon = '\0';
-#define BIT(bit) if (g_strcasecmp (p, #bit) == 0) debug_mask |= PSPI_DEBUG_##bit
+#define BIT(bit) if (g_ascii_strcasecmp (p, #bit) == 0) debug_mask |= PSPI_DEBUG_##bit
           BIT (ADVANCE_STATE);
 	  BIT (BUFFER_SUITE);
 	  BIT (CHANNEL_PORT_SUITE);
@@ -574,12 +581,11 @@ setup_debug_mask (void)
 	}
     }
 
-  if (debug_mask & PSPI_DEBUG_DEBUGGER)
-    {
-      /* Give us time to attach with a debugger */
-      g_usleep (20000000);
-    }
 #endif
+
+  PSPI_DEBUG (DEBUGGER, (g_print ("Sleeping, attach with debugger NOW\n"),
+			 g_usleep (20000000),
+			 g_print ("Continuing\n")));
 }
 
 static void
@@ -587,7 +593,7 @@ init (void)
 {
   GimpMessageHandlerType old_handler;
 
-  gimp_plugin_domain_register (GETTEXT_PACKAGE, LOCALEDIR);
+  gimp_plugin_domain_register (PLUGIN_NAME, NULL);
 
   setup_debug_mask ();
 
@@ -620,9 +626,11 @@ init (void)
 	g_message (_("Could not open %s for writing"), temp_name);
       else
 	{
+	  PSPI_DEBUG (PSPIRC, g_print ("Saving pspirc file\n"));
 	  fprintf (pspirc, "<pspi-settings>\n");
 	  g_hash_table_foreach (plug_in_hash, save_pspirc_entry, pspirc);
 	  fprintf (pspirc, "</pspi-settings>\n");
+	  PSPI_DEBUG (PSPIRC, g_print ("\n"));
 	  fclose (pspirc);
 	  remove (bak_name);
 	  if (g_file_test (pspirc_name, G_FILE_TEST_EXISTS) &&
@@ -655,7 +663,7 @@ init (void)
 static void
 query (void)
 {
-  gimp_plugin_domain_register (GETTEXT_PACKAGE, LOCALEDIR);
+  gimp_plugin_domain_register (PLUGIN_NAME, NULL);
 
   gimp_install_procedure (PSPI_SETTINGS_NAME,
 			  "Set the search path for pspi",
@@ -665,16 +673,16 @@ query (void)
 			  "2001",
 			  N_("<Toolbox>/Xtns/Photoshop Plug-in Settings..."),
 			  "",
-			  GIMP_EXTENSION,
+			  GIMP_PLUGIN,
 			  pspi_settings_nargs, 0,
 			  pspi_settings_args, NULL);
 }
 
 static GimpPDBStatusType
-run_pspi_settings (gint        n_params, 
-		   GimpParam  *param)
+run_pspi_settings (gint             n_params, 
+		   const GimpParam *param)
 {
-  GimpRunModeType run_mode = param[0].data.d_int32;
+  GimpRunMode run_mode = param[0].data.d_int32;
   GString *sp;
   int i;
   
@@ -712,8 +720,6 @@ run_pspi_settings (gint        n_params,
 	    search_path = g_strdup ("");
 	}
 
-      INIT_I18N_UI ();
-      pspi_settings_dialog_ok = FALSE;
       if (! pspi_settings_dialog (&search_path))
 	return GIMP_PDB_CANCEL;
       gimp_message (_("The new search path will be used next time GIMP is started"));
@@ -735,11 +741,11 @@ run_pspi_settings (gint        n_params,
 }
 
 static GimpPDBStatusType
-run_help_about (gchar      *pdb_name,
-		gint        n_params, 
-		GimpParam  *param)
+run_help_about (const gchar	*pdb_name,
+		gint       	 n_params, 
+		const GimpParam *param)
 {
-  GimpRunModeType run_mode = param[0].data.d_int32;
+  GimpRunMode run_mode = param[0].data.d_int32;
   GimpPDBStatusType status = GIMP_PDB_SUCCESS;
   PSPlugInEntry *pspie;
   gchar *name = pdb_name + strlen (HELP_ABOUT_PREFIX);
@@ -766,11 +772,11 @@ run_help_about (gchar      *pdb_name,
 }
 
 static GimpPDBStatusType
-run_pspi (gchar      *pdb_name,
-	  gint        n_params, 
-	  GimpParam  *param)
+run_pspi (const gchar  	  *pdb_name,
+	  gint       	   n_params, 
+	  const GimpParam *param)
 {
-  GimpRunModeType run_mode = param[0].data.d_int32;
+  GimpRunMode run_mode = param[0].data.d_int32;
   GimpDrawable *drawable;
   GimpPDBStatusType status = GIMP_PDB_SUCCESS;
   PSPlugInEntry *pspie;
@@ -798,7 +804,7 @@ run_pspi (gchar      *pdb_name,
 	return status;
 
       name = g_strdup_printf (_("Applying %s:"),
-			      pspie->pspi->location);
+			      strrchr (pspie->menu_path, '/'));
       gimp_progress_init (name);
       g_free (name);
 
@@ -806,9 +812,9 @@ run_pspi (gchar      *pdb_name,
 	return status;
 
       gimp_drawable_flush (drawable);
-      gimp_drawable_merge_shadow (drawable->id, TRUE);
-      gimp_drawable_mask_bounds (drawable->id, &x1, &y1, &x2, &y2);
-      gimp_drawable_update (drawable->id, x1, y1, (x2 - x1), (y2 - y1));
+      gimp_drawable_merge_shadow (drawable->drawable_id, TRUE);
+      gimp_drawable_mask_bounds (drawable->drawable_id, &x1, &y1, &x2, &y2);
+      gimp_drawable_update (drawable->drawable_id, x1, y1, (x2 - x1), (y2 - y1));
       gimp_displays_flush ();
 
       return GIMP_PDB_SUCCESS;
@@ -817,22 +823,27 @@ run_pspi (gchar      *pdb_name,
   return GIMP_PDB_CALLING_ERROR;
 }
 
-
 static void
-run (gchar      *name, 
-     gint        n_params, 
-     GimpParam  *param, 
-     gint       *nreturn_vals,
-     GimpParam **return_vals)
+run (const gchar     *name, 
+     gint             n_params, 
+     const GimpParam *param, 
+     gint            *nreturn_vals,
+     GimpParam      **return_vals)
 {
   static GimpParam values[1];
   GimpPDBStatusType status = GIMP_PDB_SUCCESS;
 
-  gimp_plugin_domain_register (GETTEXT_PACKAGE, LOCALEDIR);
-
   setup_debug_mask ();
+
   *nreturn_vals = 1;
   *return_vals  = values;
+
+  /*  Initialize i18n support  */
+  bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
+#ifdef HAVE_BIND_TEXTDOMAIN_CODESET
+  bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+#endif
+  textdomain (GETTEXT_PACKAGE);
 
   if (strcmp (name, PSPI_SETTINGS_NAME) == 0)
     status = run_pspi_settings (n_params, param);

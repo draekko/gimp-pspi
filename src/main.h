@@ -71,8 +71,6 @@ extern gint debug_mask;
 
 #define FILTER_MENU_PREFIX "<Image>/Filters/"
 
-extern gboolean pspi_settings_dialog_ok;
-
 extern GimpParamDef standard_args[];
 extern gint standard_nargs;
 

@@ -22,65 +22,20 @@
 #ifndef __PLUGIN_INTL_H__
 #define __PLUGIN_INTL_H__
 
-#include <locale.h>
 
-#ifdef G_OS_WIN32
-/* Don't use hardcoded path */
-#undef LOCALEDIR
-/* Assume the plug-in's message catalog is installed in the same location
- * as GIMP's.
- */
-#define LOCALEDIR g_strconcat (gimp_toplevel_directory (), \
-			       "\\lib\\locale", \
-			       NULL)
-#endif /* G_OS_WIN32 */
+#ifndef GETTEXT_PACKAGE
+#error "config.h must be included prior to plugin-intl.h"
+#endif
 
-#ifdef ENABLE_NLS
-#    include <libintl.h>
-#    define _(String) gettext (String)
-#    ifdef gettext_noop
-#        define N_(String) gettext_noop (String)
-#    else
-#        define N_(String) (String)
-#    endif
+#include <libintl.h>
+
+#define _(String) gettext (String)
+
+#ifdef gettext_noop
+#    define N_(String) gettext_noop (String)
 #else
-/* Stubs that do something close enough.  */
-#    define textdomain(String) (String)
-#    define gettext(String) (String)
-#    define dgettext(Domain,Message) (Message)
-#    define dcgettext(Domain,Message,Type) (Message)
-#    define bindtextdomain(Domain,Directory) (Domain)
-#    define _(String) (String)
 #    define N_(String) (String)
 #endif
 
-#define INIT_LOCALE(domain)	G_STMT_START{	\
-	gtk_set_locale ();			\
-	setlocale (LC_NUMERIC, "C");		\
-	bindtextdomain (domain, LOCALEDIR);	\
-	textdomain (domain);			\
-				}G_STMT_END
-
-
-#ifdef HAVE_LC_MESSAGES
-#define INIT_I18N()	G_STMT_START{	        \
-  setlocale(LC_MESSAGES, ""); 			\
-  bindtextdomain("gimp-libgimp", LOCALEDIR);    \
-  bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);	\
-  textdomain(GETTEXT_PACKAGE);		      	\
-  			}G_STMT_END
-#else
-#define INIT_I18N()	G_STMT_START{		\
-  bindtextdomain("gimp-libgimp", LOCALEDIR);    \
-  bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);	\
-  textdomain(GETTEXT_PACKAGE);			\
-  			}G_STMT_END
-#endif
-
-#define INIT_I18N_UI()	G_STMT_START{	\
-  gtk_set_locale();			\
-  setlocale (LC_NUMERIC, "C");		\
-  INIT_I18N();				\
-			}G_STMT_END
 
 #endif /* __PLUGIN_INTL_H__ */

@@ -1,15 +1,14 @@
 ## Process this file with automake to produce Makefile.in
 
 if OS_WIN32
-mwindows = -mwindows
+## mwindows = -mwindows
 endif
+
+bindir = $(GIMP_LIBDIR)/plug-ins
 
 EXTRA_DIST = \
 	genproxies.m4	\
-	piproxy.c	\
-	Makefile.msvc
-
-VERSION_FLAGS = -DVERSION=\"@PLUGIN_VERSION@\"
+	piproxy.c
 
 PSSDK_CFLAGS = \
 	-I $(PSSDK)/PhotoshopAPI/Photoshop \
@@ -19,14 +18,6 @@ PSSDK_CFLAGS = \
 bin_PROGRAMS = pspi
 
 noinst_PROGRAMS = dump-resources copy-resources
-
-dump_resources_CFLAGS = @GLIB_CFLAGS@
-dump_resources_LDADD = @GLIB_LIBS@
-
-copy_resources_CFLAGS = @GLIB_CFLAGS@
-copy_resources_LDADD = @GLIB_LIBS@
-
-bindir = $(GIMP_PLUGIN_DIR)/plug-ins
 
 pspi_SOURCES = \
 	interface.c	\
@@ -42,19 +33,14 @@ pspi_LDFLAGS = $(mwindows)
 INCLUDES = \
 	-DPSPI_WITH_DEBUGGING \
 	@GIMP_CFLAGS@	\
-	$(VERSION_FLAGS)\
 	$(PSSDK_CFLAGS)
 
-pspi_LDADD = \
+LDADD = \
 	$(GIMP_LIBS)	\
-	$(INTLLIBS)	\
 	-ladvapi32
 
 AM_CPPFLAGS = \
-	-DLOCALEDIR=\""$(LOCALEDIR)"\"		\
-	-DDATADIR=\""$(DATADIR)"\"		\
-	-DPLUGIN_NAME=\""$(PLUGIN_NAME)"\"	\
-	-DGETTEXT_PACKAGE=\""$(GETTEXT_PACKAGE)"\"
+	-DLOCALEDIR=\""$(LOCALEDIR)"\"
 
 piproxy.8bf : piproxy.c proxies.c
 	$(CC) -shared -DENTRYPOINT=$(ENTRYPOINT) $(GLIB_CFLAGS) $(PSSDK_CFLAGS) -o $@ piproxy.c $(GLIB_LIBS)

@@ -804,7 +804,7 @@ run_pspi (const gchar  	  *pdb_name,
 	return status;
 
       name = g_strdup_printf (_("Applying %s:"),
-			      strrchr (pspie->menu_path, '/'));
+			      strrchr (pspie->menu_path, '/') + 1);
       gimp_progress_init (name);
       g_free (name);
 

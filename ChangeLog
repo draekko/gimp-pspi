@@ -1,7 +1,15 @@
 2004-05-06  Tor Lillqvist  <tml@iki.fi>
 
+	* === Released 1.0.3 ===
+
+	* configure.in: Remove GTK_DISABLE_DEPRECATED, apparently libgimp
+	from GIMP 2.0 when used with GTK+ 2.4 needs deperecated widgets.
+
 	* src/Makefile.am: Uncomment the -mwindows, accidentally left
 	commented out.
+
+	* src/main.c (run_pspi): Don't display the slash in the progress
+	bar.
 
 2004-04-11  Tor Lillqvist  <tml@iki.fi>
 

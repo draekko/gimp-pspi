@@ -33,12 +33,12 @@
 
 #define WINDOWS 1		/* PSSDK headers want these */
 #define MSWindows 1
-#define WIN32 1
 
 #include <PIGeneral.h>
 #include <PIAbout.h>
 #include <PIFilter.h>
 #include <PIUtilities.h>
+#include <PIProperties.h>
 #include <WinUtilities.h>
 
 #include <libgimp/gimp.h>
@@ -47,7 +47,18 @@
 #include "plugin-intl.h"
 
 #define RECT_NONEMPTY(r) (r.left < r.right && r.top < r.bottom)
-#define PRINT_RECT(r) g_print ("left=%d top=%d right=%d bottom=%d\n", r.left, r.top, r.right, r.bottom); 
+#define PRINT_RECT(r) g_print ("%d:%dx%d:%d", r.left, r.right, r.top, r.bottom)
+
+#define PSPI_PARAMETER_TOKEN "pspi-parameter-%s"
+#define PSPI_DATA_TOKEN "pspi-data-%s"
+
+
+/* To avoid 'multi-character character constant' warnings, we use this hack: */
+
+#define STRINGIFY(x) STRINGIFY2(x)
+#define STRINGIFY2(x) #x
+#define PICK_1_4_OF(s) ((((guchar)s[1])<<24)|(((guchar)s[2])<<16)|(((guchar)s[3])<<8)|((guchar)s[4]))
+#define MULTIC(x) PICK_1_4_OF(STRINGIFY(x))
 
 struct PIentrypoint_ {
   HMODULE dll;
@@ -78,9 +89,11 @@ static ResourceProcs *resource_procs = NULL;
 static SPBasicSuite *basic_suite = NULL;
 
 /* Due to the strange design of the Photoshop API (no user data in
- * callbacks) we must keep state in global variables. Blecch. */
+ * callbacks) we must keep state in global variables. Blecch.
+ */
 
 static GimpDrawable *drawable;
+static int32 image_id;
 static PlatformData platform;
 static FilterRecord filter;
 
@@ -88,20 +101,29 @@ static char *
 int32_as_be_4c (int32 i)
 {
   const char *cp = (const char *) &i;
-  static char buf[5];
+  static char buf[5*10];
+  static int bufindex = 0;
+  
+  char *bufp = buf + bufindex;
 
-  buf[0] = cp[3];
-  buf[1] = cp[2];
-  buf[2] = cp[1];
-  buf[3] = cp[0];
-  buf[4] = '\0';
+  bufp[0] = cp[3];
+  bufp[1] = cp[2];
+  bufp[2] = cp[1];
+  bufp[3] = cp[0];
+  bufp[4] = '\0';
 
-  return buf;
+  bufindex += 5;
+  if (bufindex == sizeof(buf))
+    bufindex = 0;
+  
+  return bufp;
 }
 
 static char *
 image_mode_string (int image_mode)
 {
+  static char s[100];
+
   switch (image_mode)
     {
 #define CASE(x) case x: return #x + strlen ("plugInMode");
@@ -122,7 +144,9 @@ image_mode_string (int image_mode)
     CASE (plugInModeDeepMultichannel);
     CASE (plugInModeDuotone16);
 #undef CASE
-    default: return "???";
+    default:
+      sprintf (s, "plugInMode???(%d)", image_mode);
+      return s;
     }
 }
 
@@ -320,9 +344,81 @@ property_get_proc (PIType  signature,
                    int32  *simpleProperty,
                    Handle *complexProperty)
 {
-  PSPI_DEBUG (PROPERTY_SUITE, PING ());
+  PSPI_DEBUG (PROPERTY_SUITE, g_print (G_STRLOC ": %s %s\n",
+				       int32_as_be_4c (signature),
+				       int32_as_be_4c (key)));
 
-  return memFullErr;
+  if (signature != kPhotoshopSignature)
+    return errPlugInHostInsufficient;
+
+  if (key == MULTIC (propNumberOfChannels))
+    {
+      gint num_channels;
+      gint32 *channels = gimp_image_get_channels (image_id, &num_channels);
+      g_free (channels);
+      *simpleProperty = num_channels;
+    }
+  else if (key == MULTIC (propChannelName))
+    {
+      gint num_channels;
+      gint32 *channels = gimp_image_get_channels (image_id, &num_channels);
+      gchar *channel_name;
+      gpointer p;
+
+      if (index < 0 || index >= num_channels)
+	{
+	  g_free (channels);
+	  return errPlugInPropertyUndefined;
+	}
+      channel_name = gimp_channel_get_name (channels[index]);
+      g_free (channels);
+      *complexProperty = handle_new_proc (strlen (channel_name));
+      p = handle_lock_proc (*complexProperty, TRUE);
+      memcpy (p, channel_name, strlen (channel_name));
+      handle_unlock_proc (*complexProperty);
+      g_free (channel_name);
+    }
+  else if (key == MULTIC (propImageMode))
+    {
+      *simpleProperty = filter.imageMode;
+    }
+  else if (key == MULTIC (propNumberOfPaths))
+    {
+      int i;
+      gint num_paths;
+      gchar **paths = gimp_path_list (image_id, &num_paths);
+
+      for (i = 0; i < num_paths; i++)
+	g_free (paths[i]);
+      g_free (paths);
+      *simpleProperty = num_paths;
+    }
+  else if (key == MULTIC (propPathName))
+    {
+      int i;
+      gint num_paths;
+      gchar **paths = gimp_path_list (image_id, &num_paths);
+      gpointer p;
+
+      if (index < 0 || index >= num_paths)
+	{
+	  for (i = 0; i < num_paths; i++)
+	    g_free (paths[i]);
+	  g_free (paths);
+	  return errPlugInPropertyUndefined;
+	}
+      *complexProperty = handle_new_proc (strlen (paths[index]));
+      p = handle_lock_proc (*complexProperty, TRUE);
+      memcpy (p, paths[index], strlen (paths[index]));
+      handle_unlock_proc (*complexProperty);
+      for (i = 0; i < num_paths; i++)
+	g_free (paths[i]);
+      g_free (paths);
+    }
+  else
+    return errPlugInHostInsufficient;
+
+  return noErr;
 }
 
 static OSErr
@@ -332,9 +428,29 @@ property_set_proc (PIType signature,
                    int32  simpleProperty,
                    Handle complexProperty)
 {
-  PSPI_DEBUG (PROPERTY_SUITE, PING ());
+  PSPI_DEBUG (PROPERTY_SUITE, g_print (G_STRLOC ": %s %s\n",
+				       int32_as_be_4c (signature),
+				       int32_as_be_4c (key)));
 
-  return memFullErr;
+  if (signature != kPhotoshopSignature)
+    return errPlugInHostInsufficient;
+
+  if (key == MULTIC (propNumberOfChannels))
+    {
+    }
+  else if (key == MULTIC (propChannelName))
+    {
+    }
+  else if (key == MULTIC (propImageMode))
+    {
+    }
+  else if (key == MULTIC (propNumberOfPaths))
+    {
+    }
+  else
+    return errPlugInHostInsufficient;
+
+  return noErr;
 }
 
 static int16
@@ -343,9 +459,7 @@ resource_count_proc (ResType ofType)
   GimpParasite *parasite;
   gchar token[20];
   gint i;
-  gint32 image_id;
 
-  image_id = gimp_drawable_image (drawable->id);
   i = 0;
   while (TRUE)
     {
@@ -368,11 +482,9 @@ resource_get_proc (ResType ofType,
 {
   GimpParasite *parasite;
   gchar token[20];
-  gint32 image_id;
   Handle result;
   gpointer p;
 
-  image_id = gimp_drawable_image (drawable->id);
   sprintf (token, "pspi-res-%s-%d", int32_as_be_4c (ofType), index);
   parasite = gimp_image_parasite_find (image_id, token);
 
@@ -401,12 +513,10 @@ resource_delete_proc (ResType ofType,
   GimpParasite *parasite;
   gchar token[20];
   gint i;
-  gint32 image_id;
 
   PSPI_DEBUG (RESOURCE_SUITE, g_print (G_STRLOC ": %s, %d\n",
 				       int32_as_be_4c (ofType), index));
 
-  image_id = gimp_drawable_image (drawable->id);
   sprintf (token, "pspi-res-%s-%d", int32_as_be_4c (ofType), index);
   gimp_image_parasite_detach (image_id, token);
 
@@ -432,7 +542,6 @@ resource_add_proc (ResType ofType,
 {
   gchar token[20];
   gint i;
-  gint32 image_id;
   gpointer p;
   gint size;
 
@@ -440,7 +549,6 @@ resource_add_proc (ResType ofType,
 				       int32_as_be_4c (ofType), data));
 
   i = resource_count_proc (ofType);
-  image_id = gimp_drawable_image (drawable->id);
   sprintf (token, "pspi-res-%s-%d", int32_as_be_4c (ofType), i);
   size = handle_get_size_proc (data);
   p = handle_lock_proc (data, FALSE);
@@ -482,7 +590,7 @@ SPBasicAcquireSuite (char  *name,
 {
   PSPI_DEBUG (SPBASIC_SUITE, g_print (G_STRLOC ": %s %ld\n", name, version));
   
-  return kSPUnimplementedError;
+  return errPlugInHostInsufficient;
 }
 
 SPAPI SPErr
@@ -596,17 +704,23 @@ display_pixels_proc (const PSPixelMap *source,
 #ifdef PSPI_WITH_DEBUGGING
   if (debug_mask & PSPI_DEBUG_MISC_CALLBACKS)
     {
-      g_print (G_STRLOC ": source->bounds:%ld,%ld,%ld,%ld\n",
-	       source->bounds.left, source->bounds.top,
-	       source->bounds.right, source->bounds.bottom);
-      g_print ("  srcRect:%ld,%ld,%ld,%ld\n",
-	       srcRect->left, srcRect->top, srcRect->right, srcRect->bottom);
+      g_print (G_STRLOC ": source->bounds:%ld:%ldx%ld:%ld\n",
+	       source->bounds.left, source->bounds.right,
+	       source->bounds.top, source->bounds.bottom);
+      g_print ("  srcRect:%ld:%ldx%ld:%ld\n",
+	       srcRect->left, srcRect->right,
+	       srcRect->top, srcRect->bottom);
       g_print ("  imageMode:%s", image_mode_string (source->imageMode));
       g_print ("  rowBytes:%ld colBytes:%ld planeBytes:%ld baseAddr:%p\n",
 	       source->rowBytes, source->colBytes,
 	       source->planeBytes,source->baseAddr);
+      g_print ("  hdc:%p\n", hdc);
     }
 #endif /* PSPI_WITH_DEBUGGING */
+
+  /* Some plug-ins call displayPixels with bogux parameters */
+  if (hdc == NULL || source->rowBytes == 0 || source->baseAddr == 0)
+    return filterBadParameters;
 
   bmi.bi.biSize = sizeof (BITMAPINFOHEADER);
   bmi.bi.biWidth = w;
@@ -651,14 +765,14 @@ display_pixels_proc (const PSPixelMap *source,
     for (y = 0; y < h; y++)
       {
 	memmove (bits + bpl*y,
-		 source->baseAddr + srcRect->left + source->rowBytes*y,
+		 ((char *) source->baseAddr) + srcRect->left + source->rowBytes*y,
 		 w);
       }
   else
     for (y = 0; y < h; y++)
       {
 	p = bits + bpl*y;
-	q = source->baseAddr + srcRect->left*source->colBytes +
+	q = ((char *) source->baseAddr) + srcRect->left*source->colBytes +
 	  source->rowBytes*y;
 	for (x = 0; x < w; x++)
 	  {
@@ -667,7 +781,7 @@ display_pixels_proc (const PSPixelMap *source,
 	    p[1] = q[1];
 	    p[2] = q[0];
 	    p += 3;
-	    q += 3;
+	    q += source->colBytes;
 	  }
       }
   
@@ -676,7 +790,7 @@ display_pixels_proc (const PSPixelMap *source,
 
   if (!BitBlt (hdc, dstCol, dstRow, bmi.bi.biWidth, -bmi.bi.biHeight, hmemdc,
 	       0, 0, SRCCOPY))
-    g_message (_("pspi: BitBlt failed: %s"),
+    g_message (_("pspi: BitBlt() failed: %s"),
 	       g_win32_error_message (GetLastError ()));
 
   SelectObject (hmemdc, holdbm);
@@ -686,10 +800,30 @@ display_pixels_proc (const PSPixelMap *source,
   return noErr;
 }
 
+static ReadImageDocumentDesc *
+make_read_image_document_desc (void)
+{
+  ReadImageDocumentDesc *p = g_new (ReadImageDocumentDesc, 1);
+  
+  p->minVersion = 0;
+  p->maxVersion = 1;
+  p->imageMode = filter.imageMode;
+  p->depth = 8;
+  p->bounds.top = 0;
+  p->bounds.left = 0;
+  p->bounds.bottom = drawable->height;
+  p->bounds.right = drawable->width;
+  p->hResolution = filter.imageHRes;
+  p->vResolution = filter.imageVRes;
+  /* redLUT, greenLUT and blueLUT */
+
+  /* XXX */
+  return NULL;
+}
+  
 static void
 create_buf (guchar      **buf,
             int32        *stride,
-            GimpPixelRgn *pr,
             const Rect   *rect,
             int           loplane,
             int           hiplane)
@@ -698,18 +832,10 @@ create_buf (guchar      **buf,
   const int w = (rect->right - rect->left);
   const int h = (rect->bottom - rect->top);
 
-  if (nplanes == pr->bpp)
-    {
-      *buf = g_malloc (pr->bpp * w * h);
-      *stride = pr->bpp * w;
-    }
-  else
-    {
-      *buf = g_malloc (nplanes * w * h);
-      *stride = nplanes * w;
-    }
+  *buf = g_malloc (nplanes * w * h);
+  *stride = nplanes * w;
   PSPI_DEBUG (ADVANCE_STATE,
-	      g_print (G_STRLOC ":nplanes=%d w=%d h=%d stride=%ld buf=%p\n",
+	      g_print (G_STRLOC ": nplanes=%d w=%d h=%d stride=%ld buf=%p\n",
 		       nplanes, w, h, *stride, *buf));
 }
 
@@ -724,38 +850,67 @@ fill_buf (guchar      **buf,
   const int nplanes = hiplane - loplane + 1;
   const int w = (rect->right - rect->left);
   const int h = (rect->bottom - rect->top);
+  int gimpw, gimph;
 
-  create_buf (buf, stride, pr, rect, loplane, hiplane);
+  create_buf (buf, stride, rect, loplane, hiplane);
 
   PSPI_DEBUG (ADVANCE_STATE,
-	      g_print (G_STRLOC ":nplanes=%d loplane=%d hiplane=%d w=%d h=%d stride=%ld\n",
+	      g_print (G_STRLOC ": nplanes=%d loplane=%d hiplane=%d w=%d h=%d stride=%ld\n",
 		       nplanes, loplane, hiplane, w, h, *stride));
 
-  if (nplanes == pr->bpp)
+  if (rect->left < 0 ||
+      rect->top < 0 ||
+      rect->left + w > drawable->width ||
+      rect->top + h > drawable->height)
     {
-      gimp_pixel_rgn_get_rect (pr, *buf, rect->left, rect->top, w, h);
+      /* At least part of the requested area is outside the drawable.
+       * Clear all of it for a start, then.
+       */
+      memset (*buf, h * *stride, 0);
     }
-  else
-    {
-      guchar *row = g_malloc (pr->bpp * w);
-      gint i, j, y;
 
-      for (y = rect->top; y < rect->bottom; y++)
-        {
-          gimp_pixel_rgn_get_row (pr, row, rect->left, y, w);
-          for (i = loplane; i <= hiplane; i++)
-            {
-              guchar *p = row + i;
-              guchar *q = *buf + (y - rect->top) * *stride + (i - loplane);
-              for (j = 0; j < w; j++)
-                {
-                  *q = *p;
-                  p += pr->bpp;
-                  q += nplanes;
-                }
-            }
-        }
-      g_free (row);
+  if (rect->left < drawable->width &&
+      rect->top < drawable->height)
+    {
+      /* At least a part of the requested area is inside the drawable */
+
+      gimpw = w;
+      if (rect->left + w > drawable->width)
+	gimpw = drawable->width - rect->left;
+
+      gimph = h;
+      if (rect->top + h > drawable->height)
+	gimph = drawable->height - rect->top;
+
+      PSPI_DEBUG (ADVANCE_STATE, if (gimpw != w || gimph != h) g_print ("  gimpw=%d gimph=%d\n", gimpw, gimph));
+
+      if (nplanes == pr->bpp && gimpw == w)
+	{
+	  gimp_pixel_rgn_get_rect (pr, *buf, rect->left, rect->top,
+				   gimpw, gimph);
+	}
+      else
+	{
+	  guchar *row = g_malloc (pr->bpp * gimpw);
+	  gint i, j, y;
+
+	  for (y = rect->top; y < rect->top + gimph; y++)
+	    {
+	      gimp_pixel_rgn_get_row (pr, row, rect->left, y, gimpw);
+	      for (i = loplane; i <= hiplane; i++)
+		{
+		  guchar *p = row + i;
+		  guchar *q = *buf + (y - rect->top) * *stride + (i - loplane);
+		  for (j = 0; j < gimpw; j++)
+		    {
+		      *q = *p;
+		      p += pr->bpp;
+		      q += nplanes;
+		    }
+		}
+	    }
+	  g_free (row);
+	}
     }
 
 #ifdef PSPI_WITH_DEBUGGING
@@ -775,7 +930,7 @@ fill_buf (guchar      **buf,
 }
 
 static void
-store_buf (guchar      **buf,
+store_buf (guchar       *buf,
            int32         stride,
            GimpPixelRgn *pr,
            const Rect   *rect,
@@ -785,51 +940,69 @@ store_buf (guchar      **buf,
   const int nplanes = hiplane - loplane + 1;
   const int w = (rect->right - rect->left);
   const int h = (rect->bottom - rect->top);
+  int gimpw, gimph;
 
 #ifdef PSPI_WITH_DEBUGGING
   if (debug_mask & PSPI_DEBUG_ADVANCE_STATE)
     {
       int i;
-      g_print (G_STRLOC ":buf=%p nplanes=%d loplane=%d hiplane=%d w=%d h=%d stride=%ld\n",
-	       *buf, nplanes, loplane, hiplane, w, h, stride);
+      g_print ("  buf=%p nplanes=%d loplane=%d hiplane=%d w=%d h=%d stride=%ld\n",
+	       buf, nplanes, loplane, hiplane, w, h, stride);
   
       for (i = 0; i < 8; i++)
 	{
 	  int j;
 	  for (j = loplane; j <= hiplane; j++)
-	    g_print ("%02x", (*buf)[i*nplanes+j]);
+	    g_print ("%02x", buf[i*nplanes+j]);
 	  g_print (" ");
 	}
       g_print ("\n");
     }
 #endif /* PSPI_WITH_DEBUGGING */
 
-  if (nplanes == pr->bpp)
+  if (rect->left < drawable->width &&
+      rect->top < drawable->height)
     {
-      gimp_pixel_rgn_set_rect (pr, *buf, rect->left, rect->top, w, h);
-    }
-  else
-    {
-      guchar *row = g_malloc (pr->bpp * w);
-      gint i, j, y;
+      /* At least a part of the area is inside the drawable */
 
-      for (y = rect->top; y < rect->bottom; y++)
-        {
-          gimp_pixel_rgn_get_row (pr, row, rect->left, y, w);
-          for (i = loplane; i <= hiplane; i++)
-            {
-              guchar *p = row + i;
-              guchar *q = *buf + (y - rect->top) * stride + (i - loplane);
-              for (j = 0; j < w; j++)
-                {
-                  *p = *q;
-                  p += pr->bpp;
-                  q += nplanes;
-                }
-            }
-          gimp_pixel_rgn_set_row (pr, row, rect->left, y, w);
-        }
-      g_free (row);
+      gimpw = w;
+      if (rect->left + w > drawable->width)
+	gimpw = drawable->width - rect->left;
+
+      gimph = h;
+      if (rect->top + h > drawable->height)
+	gimph = drawable->height - rect->top;
+
+      PSPI_DEBUG (ADVANCE_STATE, if (gimpw != w || gimph != h) g_print ("  gimpw=%d gimph=%d\n", gimpw, gimph));
+
+      if (nplanes == pr->bpp && gimpw == w)
+	{
+	  gimp_pixel_rgn_set_rect (pr, buf, rect->left, rect->top,
+				   gimpw, gimph);
+	}
+      else
+	{
+	  guchar *row = g_malloc (pr->bpp * gimpw);
+	  gint i, j, y;
+
+	  for (y = rect->top; y < rect->top + gimph; y++)
+	    {
+	      gimp_pixel_rgn_get_row (pr, row, rect->left, y, gimpw);
+	      for (i = loplane; i <= hiplane; i++)
+		{
+		  guchar *p = row + i;
+		  guchar *q = buf + (y - rect->top) * stride + (i - loplane);
+		  for (j = 0; j < gimpw; j++)
+		    {
+		      *p = *q;
+		      p += pr->bpp;
+		      q += nplanes;
+		    }
+		}
+	      gimp_pixel_rgn_set_row (pr, row, rect->left, y, gimpw);
+	    }
+	  g_free (row);
+	}
     }
 }
 
@@ -847,9 +1020,12 @@ advance_state_proc (void)
     {
       g_print (G_STRLOC ": in: ");
       PRINT_RECT (filter.inRect);
-      g_print (G_STRLOC ": out: ");
+      g_print (",%d:%d", filter.inLoPlane, filter.inHiPlane);
+      g_print ("\n  out: ");
       PRINT_RECT (filter.outRect);
-      g_print ("  inData=%p outData=%p\n", filter.inData, filter.outData);
+      g_print (",%d:%d", filter.outLoPlane, filter.outHiPlane);
+      g_print ("\n  inData=%p outData=%p drawable->bpp=%d\n",
+	       filter.inData, filter.outData, drawable->bpp);
     }
 #endif /* PSPI_WITH_DEBUGGING */
 
@@ -862,8 +1038,8 @@ advance_state_proc (void)
 
   if (dst_valid)
     {
-      PSPI_DEBUG (ADVANCE_STATE, g_print (G_STRLOC ": outData:\n"));
-      store_buf ((guchar **) &filter.outData, outRowBytes, &dst, &outRect,
+      PSPI_DEBUG (ADVANCE_STATE, g_print ("  outData:\n"));
+      store_buf ((guchar *) filter.outData, outRowBytes, &dst, &outRect,
                  outLoPlane, outHiPlane);
       g_free (filter.outData);
       filter.outData = NULL;
@@ -876,7 +1052,6 @@ advance_state_proc (void)
                            filter.inRect.right - filter.inRect.left,
                            filter.inRect.bottom - filter.inRect.top,
                            FALSE, FALSE);
-      PSPI_DEBUG (ADVANCE_STATE, g_print (G_STRLOC ": inData:\n"));
       fill_buf ((guchar **) &filter.inData, &filter.inRowBytes, &src,
                 &filter.inRect, filter.inLoPlane, filter.inHiPlane);
       src_valid = TRUE;
@@ -895,7 +1070,6 @@ advance_state_proc (void)
                            filter.outRect.right - filter.outRect.left,
                            filter.outRect.bottom - filter.outRect.top,
                            TRUE, TRUE);
-      PSPI_DEBUG (ADVANCE_STATE, g_print (G_STRLOC ": outData:\n"));
       fill_buf ((guchar **) &filter.outData, &filter.outRowBytes, &src,
                 &filter.outRect, filter.outLoPlane, filter.outHiPlane);
       outRowBytes = filter.outRowBytes;
@@ -911,9 +1085,17 @@ advance_state_proc (void)
 }
 
 static void
-clean_slashes (gchar *s)
+clean (gchar *s)
 {
+  gchar *tail;
   gchar *slash;
+
+  while (*s == ' ')
+    strcpy (s, s + 1);
+
+  tail = s + strlen (s) - 1;
+  while (tail > s && *tail == ' ')
+    *tail-- = '\0';
 
   while ((slash = strchr (s, '/')) != NULL)
     {
@@ -955,36 +1137,31 @@ enum_names (HMODULE  dll,
   PIProperty *pipp;
   EnumArg *arg = (EnumArg *) param;
   int i, count;
-  char namebuf[20];
   char entrypoint[256] = "";
   gchar *menu_category = NULL, *menu_name = NULL, *image_types = NULL;
 
   if (HIWORD (name) == 0)
-    {
-      PSPI_DEBUG (PIPL, g_print ("%s: name = %d\n", arg->file, (int) name));
-      sprintf (namebuf, "#%d", (guint) name);
-      name = namebuf;
-    }
+    PSPI_DEBUG (PIPL, g_print ("%s: name = %d\n", arg->file, (int) name));
   else
     PSPI_DEBUG (PIPL, g_print ("%s: name = %s\n", arg->file, name));
 
   if ((pipl = FindResource (dll, name, type)) == NULL)
     {
-      g_message (_("pspi: FindResource failed for %s in %s"),
+      g_message (_("pspi: FindResource() failed for %s in %s"),
 		 name, arg->file);
       return TRUE;
     }
 
   if ((reshandle = LoadResource (dll, pipl)) == NULL)
     {
-      g_message (_("pspi: LoadResource failed for %s: %s"),
+      g_message (_("pspi: LoadResource() failed for %s: %s"),
 		 arg->file, g_win32_error_message (GetLastError ()));
       return TRUE;
     }
 
   if ((resp = (DWORD) LockResource (reshandle)) == 0)
     {
-      g_message (_("pspi: LockResource failed for PiPL resource from %s: %s"),
+      g_message (_("pspi: LockResource() failed for PiPL resource from %s: %s"),
 		 arg->file, g_win32_error_message (GetLastError ()));
       return TRUE;
     }
@@ -1033,8 +1210,6 @@ enum_names (HMODULE  dll,
         {
           WORD mode = GUINT16_SWAP_LE_BE(*((WORD *) pipp->propertyData));
 
-          PSPI_DEBUG (PIPL, g_print ("image modes: %x\n", mode));
-
           image_types = g_strconcat
             ((mode & (0x8000 >> plugInModeGrayScale)) ? "GRAY* " : "",
              (mode & (0x8000 >> plugInModeRGBColor)) ? "RGB* " : "",
@@ -1052,14 +1227,14 @@ enum_names (HMODULE  dll,
           menu_category = g_malloc0 (pipp->propertyLength);
           strncpy (menu_category, pipp->propertyData+1,
                    (int) (guchar) pipp->propertyData[0]);
-	  clean_slashes (menu_category);
+	  clean (menu_category);
         }
       else if (pipp->propertyKey == PINameProperty)
         {
           menu_name = g_malloc0 (pipp->propertyLength);
           strncpy (menu_name, pipp->propertyData+1,
                    (int) (guchar) pipp->propertyData[0]);
-	  clean_slashes (menu_name);
+	  clean (menu_name);
         }
       pipp = (PIProperty *) ((&pipp->propertyData)
                              + pipp->propertyLength);
@@ -1071,13 +1246,13 @@ enum_names (HMODULE  dll,
       return TRUE;
     }
 
-  if (menu_category == NULL)
+  if (menu_category == NULL || menu_category[0] == '\0')
     {
       g_message (_("pspi: No category specified for %s in %s"), name, arg->file);
       return TRUE;
     }
 
-  if (menu_name == NULL)
+  if (menu_name == NULL || menu_name[0] == '\0')
     {
       g_message (_("pspi: No name specified for %s in %s"), name, arg->file);
       return TRUE;
@@ -1091,7 +1266,7 @@ enum_names (HMODULE  dll,
 
   if (GetProcAddress (dll, entrypoint) == NULL)
     {
-      g_message (_("pspi: GetProcAddress (%s, %s) failed: %s"),
+      g_message (_("pspi: GetProcAddress(%s,%s) failed: %s"),
 		 arg->file, entrypoint,
 		 g_win32_error_message (GetLastError ()));
       return TRUE;
@@ -1130,7 +1305,7 @@ query_8bf (const gchar       *file,
   arg->pspi->entries = NULL;
 
   if (EnumResourceNames (dll, "PIPL", &enum_names, (LONG) arg) == 0)
-    g_message (_("pspi: EnumResourceNames (PIPL) failed for %s: %s"),
+    g_message (_("pspi: EnumResourceNames(PIPL) failed for %s: %s"),
 	       file, g_win32_error_message (GetLastError ()));
 
   add_found_plugin (arg->pspi);
@@ -1280,7 +1455,7 @@ setup_filter_record (void)
   /* premiereHook */
   filter.advanceState = advance_state_proc;
   filter.supportsAbsolute = TRUE;
-  /* filter.wantsAbsolute */
+  filter.wantsAbsolute = FALSE;
   filter.getPropertyObsolete = property_get_proc;
   /* cannotUndo */
   filter.supportsPadding = FALSE;
@@ -1327,11 +1502,36 @@ setup_filter_record (void)
   memset (filter.reserved, 0, sizeof (filter.reserved));
 }
 
+static void
+setup_sizes (void)
+{
+  gint x1, y1, x2, y2;
+  gdouble xres, yres;
+
+  filter.imageSize.h = drawable->width;
+  filter.imageSize.v = drawable->height;
+  filter.planes = drawable->bpp;
+  gimp_drawable_mask_bounds (drawable->id, &x1, &y1, &x2, &y2);
+  filter.filterRect.top = y1;
+  filter.filterRect.left = x1;
+  filter.filterRect.bottom = y2;
+  filter.filterRect.right = x2;
+
+  gimp_image_get_resolution (image_id, &xres, &yres);
+  filter.imageHRes = long2fixed ((long) (xres + 0.5));
+  filter.imageVRes = long2fixed ((long) (yres + 0.5));
+  filter.floatCoord.h = x1;
+  filter.floatCoord.v = y1;
+  filter.wholeSize.h = gimp_image_width (image_id);
+  filter.wholeSize.v = gimp_image_height (image_id);
+}
+
 static GimpPDBStatusType
 error_message (int16  result,
                gchar *phase)
 {
-  if (result == userCanceledErr)
+  /* Many plug-ins seem to return error code 1 to indicate Cancel */
+  if (result == userCanceledErr || result == 1)
     return GIMP_PDB_CANCEL;
   else
     {
@@ -1414,7 +1614,7 @@ load_dll (PSPlugInEntry *pspie)
 
   if ((pspie->entry->dll = LoadLibrary (pspie->pspi->location)) == NULL)
     {
-      g_message (_("pspi: LoadLibrary (%s) failed: %s"),
+      g_message (_("pspi: LoadLibrary(%s) failed: %s"),
 		 pspie->pspi->location,
 		 g_win32_error_message (GetLastError ()));
       return GIMP_PDB_EXECUTION_ERROR;
@@ -1424,7 +1624,7 @@ load_dll (PSPlugInEntry *pspie)
                                      pspie->entrypoint_name);
   if (pspie->entry->ep == NULL)
     {
-      g_message (_("pspi: GetProcAddress (%s, %s) failed: %s"),
+      g_message (_("pspi: GetProcAddress(%s,%s) failed: %s"),
 		 pspie->pspi->location, pspie->entrypoint_name,
 		 g_win32_error_message (GetLastError ()));
       FreeLibrary (pspie->entry->dll);
@@ -1440,11 +1640,19 @@ save_stuff (const PSPlugInEntry *pspie,
   gchar *token;
   gint size;
 
-  token = g_strdup_printf ("pspi-parameters-%s", pspie->pdb_name);
-  gimp_set_data (token, &filter.parameters, sizeof (filter.parameters));
-  g_free (token);
+  if (filter.parameters != NULL)
+    {
+      token = g_strdup_printf (PSPI_PARAMETER_TOKEN, pspie->pdb_name);
+      size = handle_get_size_proc ((Handle) filter.parameters);
+      PSPI_DEBUG (CALL, g_print ("Saving parameter: %d bytes\n", size));
+      gimp_set_data (token,
+		     handle_lock_proc ((Handle) filter.parameters, FALSE),
+		     size);
+      g_free (token);
+    }
 
-  token = g_strdup_printf ("pspi-data-%s", pspie->pdb_name);
+  PSPI_DEBUG (CALL, g_print ("Saving data %#lx\n", data));
+  token = g_strdup_printf (PSPI_DATA_TOKEN, pspie->pdb_name);
   size = gimp_set_data (token, &data, sizeof (int32));
   g_free (token);
 }
@@ -1456,18 +1664,25 @@ restore_stuff (const PSPlugInEntry *pspie,
   gchar *token;
   gint size;
 
-  token = g_strdup_printf ("pspi-parameters-%s", pspie->pdb_name);
+  token = g_strdup_printf (PSPI_PARAMETER_TOKEN, pspie->pdb_name);
   size = gimp_get_data_size (token);
-  if (size == sizeof (filter.parameters))
-    gimp_get_data (token, &filter.parameters);
-  else
+  if (size <= 0)
     filter.parameters = NULL;
+  else
+    {
+      PSPI_DEBUG (CALL, g_print ("Restoring parameter: %d bytes\n", size));
+      filter.parameters = handle_new_proc (size);
+      gimp_get_data (token, filter.parameters);
+    }
   g_free (token);
 
-  token = g_strdup_printf ("pspi-data-%s", pspie->pdb_name);
+  token = g_strdup_printf (PSPI_DATA_TOKEN, pspie->pdb_name);
   size = gimp_get_data_size (token);
   if (size == sizeof (int32))
-    gimp_get_data (token, data);
+    {
+      gimp_get_data (token, data);
+      PSPI_DEBUG (CALL, g_print ("Restored data %#lx\n", *data));
+    }
   else
     *data = 0;
   g_free (token);
@@ -1543,60 +1758,30 @@ pspi_params (PSPlugInEntry *pspie)
   return GIMP_PDB_SUCCESS;
 }
 
-static ReadImageDocumentDesc *
-make_read_image_document_desc (void)
-{
-  ReadImageDocumentDesc *p = g_new (ReadImageDocumentDesc, 1);
-  
-  p->minVersion = 0;
-  p->maxVersion = 1;
-  p->imageMode = filter.imageMode;
-  p->depth = 8;
-  p->bounds.top = 0;
-  p->bounds.left = 0;
-  p->bounds.bottom = drawable->height;
-  p->bounds.right = drawable->width;
-  p->hResolution = filter.imageHRes;
-  p->vResolution = filter.imageVRes;
-  /* redLUT, greenLUT and blueLUT */
-
-  /* XXX */
-  return NULL;
-}
-  
 GimpPDBStatusType
 pspi_prepare (PSPlugInEntry *pspie,
               GimpDrawable  *dr)
 {
   GimpImageType image_type;
   GimpPDBStatusType status;
-  gdouble xres, yres;
-  gint x1, y1, x2, y2;
-  gint32 image_id;
   int32 data;
   int16 result;
 
-  /* Set global, yecch */
+  /* Set globals, yecch */
   drawable = dr;
- 
   image_id = gimp_drawable_image (drawable->id);
-  image_type = gimp_drawable_type_with_alpha (drawable->id);
+ 
+  image_type = gimp_drawable_type (drawable->id);
 
   if ((status = load_dll (pspie)) != GIMP_PDB_SUCCESS)
     return status;
 
   setup_suites ();
   setup_filter_record ();
+  setup_sizes ();
+
   restore_stuff (pspie, &data);
 
-  filter.imageSize.v = drawable->width;
-  filter.imageSize.h = drawable->height;
-  filter.planes = drawable->bpp;
-  gimp_drawable_mask_bounds (drawable->id, &x1, &y1, &x2, &y2);
-  filter.filterRect.top = y1;
-  filter.filterRect.left = x1;
-  filter.filterRect.bottom = y2;
-  filter.filterRect.right = x2;
   filter.isFloating = gimp_drawable_is_layer (drawable->id) && gimp_layer_is_floating_selection (drawable->id);
   if (filter.isFloating) PSPI_DEBUG (CALL, g_print ("isFloating TRUE\n"));
   filter.haveMask = FALSE;      /* ??? */
@@ -1604,46 +1789,61 @@ pspi_prepare (PSPlugInEntry *pspie,
   /* maskRect */
   filter.maskData = NULL;
   filter.maskRowBytes = 0;
-  filter.hostProc = NULL;
+
   switch (image_type)
     {
     case GIMP_RGB_IMAGE:
-    case GIMP_RGBA_IMAGE: filter.imageMode = plugInModeRGBColor; break;
+      g_print ("RGB\n");
+      filter.imageMode = plugInModeRGBColor;
+      filter.inLayerPlanes = 3;
+      filter.inTransparencyMask = 0;
+      break;
+    case GIMP_RGBA_IMAGE:
+      g_print ("RGBA\n");
+      filter.imageMode = plugInModeRGBColor;
+      filter.inLayerPlanes = 3;
+      filter.inTransparencyMask = 1;
+      break;
     case GIMP_GRAY_IMAGE:
-    case GIMP_GRAYA_IMAGE: filter.imageMode = plugInModeGrayScale; break;
+      g_print ("GRAY\n");
+      filter.imageMode = plugInModeGrayScale;
+      filter.inLayerPlanes = 1;
+      filter.inTransparencyMask = 0;
+      break;
+    case GIMP_GRAYA_IMAGE:
+      g_print ("GRAYA\n");
+      filter.imageMode = plugInModeGrayScale;
+      filter.inLayerPlanes = 1;
+      filter.inTransparencyMask = 1;
+      break;
     default:
       g_assert_not_reached ();
     }
-  gimp_image_get_resolution (image_id, &xres, &yres);
-  filter.imageHRes = long2fixed((long) (xres + 0.5));
-  filter.imageVRes = long2fixed((long) (yres + 0.5));
-  filter.floatCoord.h = x1;
-  filter.floatCoord.v = y1;
-  filter.wholeSize.h = gimp_image_width (image_id);
-  filter.wholeSize.v = gimp_image_height (image_id);
 
-  filter.inLayerPlanes = drawable->bpp;
-  filter.inTransparencyMask = 0;
   filter.inLayerMasks = 0;
   filter.inInvertedLayerMasks = 0;
   filter.inNonLayerPlanes = 0;
-  filter.outLayerPlanes = drawable->bpp;
-  filter.outTransparencyMask = 0;
-  filter.outLayerMasks = 0;
-  filter.outInvertedLayerMasks = 0;
-  filter.outNonLayerPlanes = 0;
-  filter.absLayerPlanes = drawable->bpp;
-  filter.absTransparencyMask = 0;
-  filter.absLayerMasks = 0;
-  filter.absInvertedLayerMasks = 0;
-  filter.absNonLayerPlanes = 0;
+
+  filter.outLayerPlanes = filter.inLayerPlanes;
+  filter.outTransparencyMask = filter.inTransparencyMask;
+  filter.outLayerMasks = filter.inLayerMasks;
+  filter.outInvertedLayerMasks = filter.inInvertedLayerMasks;
+  filter.outNonLayerPlanes = filter.inNonLayerPlanes;
+
+  filter.absLayerPlanes = filter.inLayerPlanes;
+  filter.absTransparencyMask = filter.inTransparencyMask;
+  filter.absLayerMasks = filter.inLayerMasks;
+  filter.absInvertedLayerMasks = filter.inInvertedLayerMasks;
+  filter.absNonLayerPlanes = filter.inNonLayerPlanes;
+
   filter.inPreDummyPlanes = 0;
   filter.inPostDummyPlanes = 0;
   filter.outPreDummyPlanes = 0;
   filter.outPostDummyPlanes = 0;
-  filter.inColumnBytes = drawable->bpp;
+
+  filter.inColumnBytes = 0;
   filter.inPlaneBytes = 1;
-  filter.outColumnBytes = drawable->bpp;
+  filter.outColumnBytes = 0;
   filter.outPlaneBytes = 1;
 
   filter.documentInfo = NULL /*make_read_image_document_desc ()*/;
@@ -1666,8 +1866,6 @@ GimpPDBStatusType
 pspi_apply (const PSPlugInEntry *pspie,
             GimpDrawable        *dr)
 {
-  GimpImageType image_type;
-  gint32 image_id;
   int32 data;
   int16 result;
 
@@ -1675,59 +1873,44 @@ pspi_apply (const PSPlugInEntry *pspie,
   g_assert (buffer_procs != NULL);
 
   restore_stuff (pspie, &data);
-
-  image_id = gimp_drawable_image (drawable->id);
-  image_type =  gimp_drawable_type_with_alpha (drawable->id);
+  setup_sizes ();
 
   result = noErr;
   PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorStart\n"));
   (*pspie->entry->ep) (filterSelectorStart, &filter, &data, &result);
+
   if (result != noErr)
     {
       FreeLibrary (pspie->entry->dll);
       return error_message (result, "filterSelectorStart");
     }
 
-#ifdef PSPI_WITH_DEBUGGING
-  if (debug_mask & PSPI_DEBUG_ADVANCE_STATE)
+  if (RECT_NONEMPTY (filter.inRect)
+      || RECT_NONEMPTY (filter.outRect))
     {
-      g_print (G_STRLOC ":in: ");
-      PRINT_RECT (filter.inRect);
-      g_print (G_STRLOC ":out: ");
-      PRINT_RECT (filter.outRect);
-    }
-#endif /* PSPI_WITH_DEBUGGING */
-
-  while (RECT_NONEMPTY (filter.inRect)
-         || RECT_NONEMPTY (filter.outRect)
-         || (filter.haveMask && RECT_NONEMPTY (filter.maskRect)))
-    {
-      advance_state_proc ();
-      result = noErr;
-      PSPI_DEBUG (ADVANCE_STATE, g_print (G_STRLOC ": calling filterSelectorContinue\n"));
-      (*pspie->entry->ep) (filterSelectorContinue, &filter, &data, &result);
-
-#ifdef PSPI_WITH_DEBUGGING
-      if (debug_mask & PSPI_DEBUG_ADVANCE_STATE)
+      while (RECT_NONEMPTY (filter.inRect)
+	     || RECT_NONEMPTY (filter.outRect)
+	     || (filter.haveMask && RECT_NONEMPTY (filter.maskRect)))
 	{
-	  g_print (G_STRLOC ":in: ");
-	  PRINT_RECT (filter.inRect);
-	  g_print (G_STRLOC ":out: ");
-	  PRINT_RECT (filter.outRect);
+	  advance_state_proc ();
+	  result = noErr;
+	  PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorContinue\n"));
+	  (*pspie->entry->ep) (filterSelectorContinue, &filter, &data, &result);
+	  
+	  if (result != noErr)
+	    {       
+	      FreeLibrary (pspie->entry->dll);
+	      return error_message (result, "filterSelectorContinue");
+	    }
 	}
-#endif /* PSPI_WITH_DEBUGGING */
-
-      if (result != noErr)
-        {       
-          FreeLibrary (pspie->entry->dll);
-          return error_message (result, "filterSelectorContinue");
-        }
+      advance_state_proc ();
     }
-  advance_state_proc ();
 
   result = noErr;
   PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorFinish\n"));
   (*pspie->entry->ep) (filterSelectorFinish, &filter, &data, &result);
+  PSPI_DEBUG (CALL, g_print (G_STRLOC ": after filterSelectorFinish: %d\n",
+			     result));
   if (result != noErr)
     {
       FreeLibrary (pspie->entry->dll);

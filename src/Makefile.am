@@ -5,7 +5,8 @@ mwindows = -mwindows
 endif
 
 EXTRA_DIST = \
-	genproxies.m4 \
+	genproxies.m4	\
+	piproxy.c	\
 	Makefile.msvc
 
 VERSION_FLAGS = -DVERSION=\"@PLUGIN_VERSION@\"
@@ -17,7 +18,13 @@ PSSDK_CFLAGS = \
 
 bin_PROGRAMS = pspi
 
-noinst_DATA = piproxy.8bf
+noinst_PROGRAMS = dump-resources copy-resources
+
+dump_resources_CFLAGS = @GLIB_CFLAGS@
+dump_resources_LDADD = @GLIB_LIBS@
+
+copy_resources_CFLAGS = @GLIB_CFLAGS@
+copy_resources_LDADD = @GLIB_LIBS@
 
 bindir = $(GIMP_PLUGIN_DIR)/plug-ins
 
@@ -49,15 +56,8 @@ AM_CPPFLAGS = \
 	-DPLUGIN_NAME=\""$(PLUGIN_NAME)"\"	\
 	-DGETTEXT_PACKAGE=\""$(GETTEXT_PACKAGE)"\"
 
-piproxy.8bf : piproxy.c proxies.c piproxy_res.o
-	$(CC) -shared $(GLIB_CFLAGS) $(PSSDK_CFLAGS) -o $@ piproxy.c piproxy_res.o $(GLIB_LIBS)
+piproxy.8bf : piproxy.c proxies.c
+	$(CC) -shared -DENTRYPOINT=$(ENTRYPOINT) $(GLIB_CFLAGS) $(PSSDK_CFLAGS) -o $@ piproxy.c $(GLIB_LIBS)
 
 proxies.c : genproxies.m4
 	m4 genproxies.m4 >$@
-
-# Copy the plug-in to be tested to target.8bf
-# then this rule will extract the resources into a .rc file for piproxy.8bf
-piproxy_res.o : target.8bf
-	windres -i target.8bf -o target.res
-	windres -i target.res -o piproxy_res.o
-

@@ -53,6 +53,7 @@ extern gint debug_mask;
 #define PSPI_DEBUG_DEBUGGER		(1<<9)
 #define PSPI_DEBUG_PIPL			(1<<10)
 #define PSPI_DEBUG_CALL			(1<<11)
+#define PSPI_DEBUG_PSPIRC		(1<<12)
 #define PSPI_DEBUG_MISC_CALLBACKS	(1<<30)
 #define PSPI_DEBUG_ANY			(~0)
 #define PSPI_DEBUG_ALL			PSPI_DEBUG_ANY
@@ -75,10 +76,10 @@ extern gboolean pspi_settings_dialog_ok;
 extern GimpParamDef standard_args[];
 extern gint standard_nargs;
 
-void   install_pdb         (const gchar *pdb_name,
+void   install_pdb         (gchar       *pdb_name,
 			    const gchar *file,
-			    const gchar *menu_path,
-			    const gchar *image_types);
+			    gchar       *menu_path,
+			    gchar       *image_types);
 
 gchar *make_pdb_name       (const gchar *file,
 			    const gchar *entrypoint);

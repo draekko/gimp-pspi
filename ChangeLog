@@ -1,3 +1,45 @@
+2001-12-28  Tor Lillqvist  <tml@iki.fi>
+
+	* configure.in: Bump version number to 1.0.1.
+
+	* src/main.c: Store pspi settings in a separate pspirc file (in
+	XML format...), not in the gimprc file.
+
+	Don't rescan for Photoshop plug-ins after settings changed, it
+	crashes the GIMP 1.2.3, sigh.
+
+	Don't look for Photoshop's own Plug-ins directory. The
+	Adobe-supplied plug-ins won't work anyway.
+
+	* src/pspi.c: Too many changes to list. Some important bug fixes,
+	for instance imageSize.h and v were swapped by mistake.
+
+	* src/genproxies.m4: New parameter to the (already too
+	complicated) PROXY macro: fmtvals, to enable printing call
+	parameters through some pretty-printing function.
+
+	* src/Makefile.am: Distribute piproxy.c. Don't use windres any
+	longer to copy resources from target.8bf to piproxy.8bf. (Instead,
+	the person debugging should use copy-resources.)
+
+2001-12-27  Tor Lillqvist  <tml@iki.fi>
+
+	* src/copy-resources.c: New file. For debugging, this program
+	simply prints out the Windows resources found in an
+	executable. Note that the output is not in correct resource source
+	file format
+	(.rc).
+
+	* src/copy-resources.c: New file. This program copies the Windows
+	resources from one executable to another (to be used to copy
+	resources from the target plug-in to piproxy.8bf).
+
+	* src/Makefile.am: Add new files.
+	
+2001-12-26  Tor Lillqvist  <tml@iki.fi>
+
+	* autogen.sh: New file.
+
 2001-12-22  Tor Lillqvist  <tml@iki.fi>
 
 	* src/main.c

@@ -45,8 +45,8 @@
 
 /*  Constants  */
 
-#define PSPI_PATH_TOKEN   "pspi-path"
-#define PSPI_PLUGIN_TOKEN_FORMAT "pspi-plug-in-%d"
+#define PSPI_PATH_TOKEN "pspi-path"
+#define PSPIRC "pspirc"
 
 #define PSPI_SETTINGS_NAME "pspi_settings"
 
@@ -81,12 +81,10 @@ gint standard_nargs = sizeof (standard_args) / sizeof (standard_args[0]);
 
 static gchar *search_path = "";
 
-static gint num_plugins = 0;
-
 static GHashTable *plug_in_hash;
 static GHashTable *entry_hash;
 
-static gboolean gimprc_values_modified;
+static gboolean pspirc_values_modified;
 
 static GimpPlugInInfo PLUG_IN_INFO =
 {
@@ -154,7 +152,7 @@ add_plugin_to_hash_tables (PSPlugIn *pspi)
 void
 add_found_plugin (PSPlugIn *pspi)
 {
-  gimprc_values_modified = TRUE;
+  pspirc_values_modified = TRUE;
 
   add_plugin_to_hash_tables (pspi);
 }
@@ -180,33 +178,6 @@ add_entry_to_plugin (PSPlugIn *pspi,
   pspi->entries = g_list_append (pspi->entries, pspie);
 }  
 
-static void
-parse_and_add_plugin (gchar *gimprc_entry)
-{
-  PSPlugIn *pspi;
-  guint timestamp;
-  gint n, m;
-  gchar location[100], menu_path[100], image_types[100], entrypoint[100];
-
-  sscanf (gimprc_entry, "%100[^;];%d;%n",
-	  location, &timestamp, &n);
-
-  pspi = g_new (PSPlugIn, 1);
-  pspi->location = g_strdup (location);
-  pspi->timestamp = timestamp;
-  pspi->present = FALSE;
-  pspi->entries = NULL;
-
-  while (sscanf (gimprc_entry + n, "%100[^;];%100[^;];%100[^;];%n",
-		 menu_path, image_types, entrypoint, &m) == 3)
-    {
-      gchar *pdb_name = make_pdb_name (location, entrypoint);
-      add_entry_to_plugin (pspi, pdb_name, menu_path, image_types, entrypoint);
-      n += m;
-    }
-  add_plugin_to_hash_tables (pspi);
-}
-
 static gboolean
 check_present (gpointer key,
 	       gpointer value,
@@ -216,7 +187,7 @@ check_present (gpointer key,
 
   if (!pspi->present)
     {
-      gimprc_values_modified = TRUE;
+      pspirc_values_modified = TRUE;
       return TRUE;
     }
 
@@ -224,60 +195,179 @@ check_present (gpointer key,
 }
 
 static void
-save_gimprc_entry (gpointer key,
+save_pspirc_entry (gpointer key,
 		   gpointer value,
 		   gpointer user_data)
 {
   PSPlugIn *pspi = (PSPlugIn *) value;
+  FILE *pspirc = (FILE *) user_data;
   PSPlugInEntry *pspie;
   GList *list = pspi->entries;
-  GString *token_value = g_string_new ("");
-  gchar *token = g_strdup_printf (PSPI_PLUGIN_TOKEN_FORMAT, num_plugins++);
 
-  g_string_append_printf (token_value, "%s;%d;",
-			  pspi->location, pspi->timestamp);
+  fprintf (pspirc, "  <ps-plug-in path=\"%s\" timestamp=\"%d\">\n",
+	   pspi->location, pspi->timestamp);
 
   while (list != NULL)
     {
       pspie = list->data;
       list = list->next;
 
-      g_string_append_printf (token_value, "%s;%s;%s;",
-			      pspie->menu_path,
-			      pspie->image_types,
-			      pspie->entrypoint_name);
+      fprintf (pspirc, "    <entrypoint menu-path=\"%s\" image-types=\"%s\" entrypoint=\"%s\"/>\n",
+	       pspie->menu_path, pspie->image_types, pspie->entrypoint_name);
     }
 
-  gimp_gimprc_set (token, token_value->str);
-  g_free (token);
-  g_string_free (token_value, TRUE);
+  fprintf (pspirc, "  </ps-plug-in>\n");
+}
+
+static int depth = 0;
+
+typedef struct {
+  PSPlugIn *pspi;
+} UserData;
+
+static void
+set_error (GMarkupParseContext *context,
+	   GError             **error)
+{
+  GError *tmp_error;
+  
+  tmp_error = g_error_new (G_MARKUP_ERROR,
+			   G_MARKUP_ERROR_INVALID_CONTENT,
+			   _("Invalid pspirc syntax"));
+  g_propagate_error (error, tmp_error);
+}
+
+static void
+start_element_handler (GMarkupParseContext *context,
+		       const gchar         *element_name,
+		       const gchar        **attribute_names,
+		       const gchar        **attribute_values,
+		       gpointer             user_data,
+		       GError             **error)
+{
+  UserData *ud = (UserData *) user_data;
+  int i;
+  
+  if (strcmp (element_name, "pspi-settings") == 0 &&
+      depth == 0)
+    {
+    }
+  else if (strcmp (element_name, "ps-plug-in") == 0 &&
+	   depth == 1)
+    {
+      g_assert (ud->pspi == NULL);
+      ud->pspi = g_new (PSPlugIn, 1);
+      ud->pspi->present = FALSE;
+      ud->pspi->entries = NULL;
+      i = 0;
+      while (attribute_names[i] != NULL)
+	{
+	  if (strcmp (attribute_names[i], "path") == 0)
+	    ud->pspi->location = g_strdup (attribute_values[i]);
+	  else if (strcmp (attribute_names[i], "timestamp") == 0)
+	    ud->pspi->timestamp = atoi (attribute_values[i]);
+	  else
+	    set_error (context, error);
+	  i++;
+	}
+    }
+  else if (strcmp (element_name, "entrypoint") == 0 &&
+	   depth == 2)
+    {
+      gchar *menu_path = NULL, *image_types = NULL, *entrypoint = NULL;
+
+      i = 0;
+      while (attribute_names[i] != NULL)
+	{
+	  if (strcmp (attribute_names[i], "menu-path") == 0)
+	    if (menu_path != NULL)
+	      set_error (context, error);
+	    else
+	      menu_path = g_strdup (attribute_values[i]);
+	  else if (strcmp (attribute_names[i], "image-types") == 0)
+	    if (image_types != NULL)
+	      set_error (context, error);
+	    else
+	      image_types = g_strdup (attribute_values[i]);
+	  else if (strcmp (attribute_names[i], "entrypoint") == 0)
+	    if (entrypoint != NULL)
+	      set_error (context, error);
+	    else
+	      entrypoint = g_strdup (attribute_values[i]);
+	  else
+	    set_error (context, error);
+	  i++;
+	}
+
+      if (menu_path == NULL || image_types == NULL || entrypoint == NULL)
+	set_error (context, error);
+      else
+	{
+	  gchar *pdb_name = make_pdb_name (ud->pspi->location, entrypoint);
+	  add_entry_to_plugin (ud->pspi, pdb_name, menu_path,
+			       image_types, entrypoint);
+	}
+    }
+  else
+    set_error (context, error);
+  depth++;
+}
+
+static void
+end_element_handler (GMarkupParseContext *context,
+		     const gchar         *element_name,
+		     gpointer             user_data,
+		     GError             **error)
+{
+  UserData *ud = (UserData *) user_data;
+
+  depth--;
+  if (strcmp (element_name, "ps-plug-in") == 0)
+    {
+      add_plugin_to_hash_tables (ud->pspi);
+      ud->pspi = NULL;
+    }
 }
 
 static void
 get_saved_plugin_data (void)
 {
+  gchar *pspirc_name = gimp_personal_rc_file (PSPIRC);
+  gchar *contents;
+  gsize length;
+  GMarkupParseContext *context;
+  static GMarkupParser parser = {
+    start_element_handler,
+    end_element_handler,
+    NULL,
+    NULL,
+    NULL
+  };
+  UserData user_data;
+
   plug_in_hash = g_hash_table_new (g_str_hash, g_str_equal);
   entry_hash = g_hash_table_new (g_str_hash, g_str_equal);
 
   /* Read data for the PS plug-ins found last time */
-  num_plugins = 0;
-  while (TRUE)
+  if (!g_file_get_contents (pspirc_name, &contents, &length, NULL))
     {
-      gchar *token = g_strdup_printf (PSPI_PLUGIN_TOKEN_FORMAT, num_plugins);
-      gchar *value = gimp_gimprc_query (token);
-
-      if (value == NULL || strlen (value) == 0)
-	{
-	  g_free (token);
-	  g_free (value);
-	  break;
-	}
-
-      parse_and_add_plugin (value);
-      g_free (token);
-      g_free (value);
-      num_plugins++;
+      g_free (pspirc_name);
+      return;
     }
+
+  user_data.pspi = NULL;
+  context = g_markup_parse_context_new (&parser, 0, &user_data, NULL);
+
+  if (!g_markup_parse_context_parse (context, contents, length, NULL))
+    {
+      g_markup_parse_context_free (context);
+      g_free (pspirc_name);
+      return;
+    }
+
+  g_free (contents);
+  g_markup_parse_context_end_parse (context, NULL);
+  g_markup_parse_context_free (context);
 }
 
 static gint
@@ -343,12 +433,12 @@ my_ftw (const gchar *path,
 }
 
 void
-install_pdb (const gchar *pdb_name,
+install_pdb (gchar       *pdb_name,
 	     const gchar *file,
-	     const gchar *menu_path,
-	     const gchar *image_types)
+	     gchar        *menu_path,
+	     gchar       *image_types)
 {
-  gchar *blurb, *menu_path2, *tem, *pdb_name2;
+  gchar *blurb, *menu_path2, *pdb_name2;
 
   blurb = g_strdup_printf ("Photoshop plug-in %s", file);
   gimp_install_procedure (pdb_name,
@@ -392,7 +482,10 @@ scan_filter (const gchar       *file,
   gchar *suffix = strrchr (file, '.');
 
   if (suffix != NULL &&
-      g_strcasecmp (suffix, ".8bf") == 0)
+      (g_strcasecmp (suffix, ".8bf") == 0 ||
+       /* Jernej Simoncic says also these suffixes are used. */
+       g_strcasecmp (suffix, ".eff") == 0 ||
+       g_strcasecmp (suffix, ".dll") == 0))
     {
       /* If it hasn't changed since last time, no need
        * to query it again.
@@ -492,11 +585,7 @@ setup_debug_mask (void)
 static void
 init (void)
 {
-  HKEY reg_key;
-  DWORD type;
-  DWORD nbytes;
   GimpMessageHandlerType old_handler;
-  int i;
 
   gimp_plugin_domain_register (GETTEXT_PACKAGE, LOCALEDIR);
 
@@ -508,61 +597,54 @@ init (void)
 
   search_path = gimp_gimprc_query (PSPI_PATH_TOKEN);
   
-  if (search_path == NULL || strlen (search_path) == 0)
-    {
-      /* Look in Registry for PS's plug-in directory */
-      if ((RegOpenKeyEx (HKEY_LOCAL_MACHINE, "Software\\Adobe\\Photoshop\\5.0",
-			 0, KEY_QUERY_VALUE, &reg_key) == ERROR_SUCCESS ||
-	   RegOpenKeyEx (HKEY_LOCAL_MACHINE, "Software\\Adobe\\Photoshop\\6.0",
-			 0, KEY_QUERY_VALUE, &reg_key) == ERROR_SUCCESS) &&
-	  RegQueryValueEx (reg_key, "PluginPath", 0,
-			   &type, NULL, &nbytes) == ERROR_SUCCESS &&
-	  type == REG_SZ)
-	{
-	  search_path = g_malloc (nbytes + 1);
-	  RegQueryValueEx (reg_key, "PluginPath", 0,
-			   &type, search_path, &nbytes);
-	  search_path[nbytes] = '\0';
-	  if (search_path[strlen (search_path) - 1] == '\\')
-	    search_path[strlen (search_path) - 1] = '\0';
-	  gimp_gimprc_set (PSPI_PATH_TOKEN, search_path);
-	}
-      if (reg_key != NULL)
-	RegCloseKey (reg_key);
-    }
-
   if (search_path == NULL)
     search_path = g_strdup ("");
 
   get_saved_plugin_data ();
 
-  gimprc_values_modified = FALSE;
+  pspirc_values_modified = FALSE;
   scan_search_path ();
 
   /* Forget those PS plug-ins that weren't around any longer. */
   g_hash_table_foreach_remove (plug_in_hash, check_present, NULL);
 
-  /* Save the new gimprc values if necessary */
-  if (gimprc_values_modified)
+  /* Rewrite the pspirc file if necessary */
+  if (pspirc_values_modified)
     {
-      gint old_num_plugins = num_plugins;
+      gchar *pspirc_name = gimp_personal_rc_file (PSPIRC);
+      gchar *temp_name = g_strconcat (pspirc_name, ".new", NULL);
+      gchar *bak_name = g_strconcat (pspirc_name, ".bak", NULL);
+      FILE *pspirc = fopen (temp_name, "w");
 
-      num_plugins = 0;
-
-      g_hash_table_foreach (plug_in_hash, save_gimprc_entry, NULL);
-
-      if (old_num_plugins > num_plugins)
+      if (pspirc == NULL)
+	g_message (_("Could not open %s for writing"), temp_name);
+      else
 	{
-	  /* Set extra values to empty. Pity there is no API to remove
-	   * a gimprc value.
-	   */
-	  for (i = num_plugins; i < old_num_plugins; i++)
+	  fprintf (pspirc, "<pspi-settings>\n");
+	  g_hash_table_foreach (plug_in_hash, save_pspirc_entry, pspirc);
+	  fprintf (pspirc, "</pspi-settings>\n");
+	  fclose (pspirc);
+	  remove (bak_name);
+	  if (rename (pspirc_name, bak_name) != 0)
+	    g_message (_("Could not rename %s to %s"),
+		       pspirc_name, bak_name);
+	  else
 	    {
-	      gchar *token = g_strdup_printf (PSPI_PLUGIN_TOKEN_FORMAT, i);
-	      gimp_gimprc_set (token, "");
-	      g_free (token);
+	      if (rename (temp_name, pspirc_name) != 0)
+		{
+		  g_message (_("Could not rename %s to %s"),
+			     temp_name, pspirc_name);
+		  if (rename (bak_name, pspirc_name) != 0)
+		    g_message (_("Could not rename %s to %s"),
+			       bak_name, pspirc_name);
+		}
+	      else
+		remove (bak_name);
 	    }
 	}
+      g_free (pspirc_name);
+      g_free (temp_name);
+      g_free (bak_name);
     }
 
   if (old_handler == GIMP_CONSOLE)
@@ -633,7 +715,7 @@ run_pspi_settings (gint        n_params,
       pspi_settings_dialog_ok = FALSE;
       if (! pspi_settings_dialog (&search_path))
 	return GIMP_PDB_CANCEL;
-      scan_search_path ();
+      gimp_message (_("The new search path will be used next time GIMP is started"));
       break;
 
     case GIMP_RUN_WITH_LAST_VALS:

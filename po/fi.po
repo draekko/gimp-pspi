@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: gimp-pspi\n"
-"POT-Creation-Date: 2001-12-28 04:34+0200\n"
+"POT-Creation-Date: 2001-12-29 03:16+0200\n"
 "PO-Revision-Date: 2001-12-22 02:50+0200\n"
 "Last-Translator: Tor Lillqvist <tml@iki.fi>\n"
 "Language-Team: Finnish <FI@li.org>\n"
@@ -12,131 +12,95 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-# src/interface.c:62
-# src/interface.c:62
 #: src/interface.c:62
 msgid "Photoshop Plug-in Settings"
 msgstr "Photoshop-plugin-asetukset"
 
-# src/interface.c:67
-# src/interface.c:67
 #: src/interface.c:67
 msgid "OK"
 msgstr ""
 
-# src/interface.c:69
-# src/interface.c:69
 #: src/interface.c:69
 msgid "Cancel"
 msgstr "Peru"
 
-# src/interface.c:85
-# src/interface.c:85
 #: src/interface.c:85
 msgid "Directories with Photoshop Plug-ins"
 msgstr "Hakemistoja joissa on Photoshop-plugineja"
 
-# src/interface.c:91
-# src/interface.c:91
 #: src/interface.c:91
 msgid "You may specify multiple directories here."
 msgstr "Voit syöttää useita hakemistoja"
 
-# src/pspi.c:1406
-# src/main.c:236
 #: src/main.c:236
 msgid "Invalid pspirc syntax"
 msgstr "Epäkelpo pspirc-tiedosto"
 
-# src/main.c:392
-# src/main.c:459
 #: src/main.c:459
 msgid "<Toolbox>/Help/About Photoshop plug-ins/"
 msgstr "<Toolbox>/Help/Tietoja Photoshop-plugineista/"
 
-# src/main.c:617
 #: src/main.c:620
 #, c-format
 msgid "Could not open %s for writing"
 msgstr ""
 
-# src/main.c:626 src/main.c:632 src/main.c:635
-#: src/main.c:629 src/main.c:635 src/main.c:638
+#: src/main.c:630 src/main.c:636 src/main.c:639
 #, c-format
 msgid "Could not rename %s to %s"
 msgstr ""
 
-# src/main.c:572
-# src/main.c:662
-#: src/main.c:665
+#: src/main.c:666
 msgid "<Toolbox>/Xtns/Photoshop Plug-in Settings..."
 msgstr "<Toolbox>/Xtns/Photoshop-plugin-asetukset..."
 
-#: src/main.c:718
+#: src/main.c:719
 msgid "The new search path will be used next time GIMP is started"
 msgstr ""
 
-# src/main.c:706
-# src/main.c:796
-#: src/main.c:799
+#: src/main.c:800
 #, c-format
 msgid "Applying %s:"
 msgstr "Sovellan %s"
 
-# src/pspi.c:642
-# src/pspi.c:657
-#: src/pspi.c:758
+#: src/pspi.c:923
 #, c-format
 msgid "pspi: CreateDIBSection() failed: %s"
 msgstr "pspi: CreateDIBSection() epäonnistui: %s"
 
-# src/pspi.c:677
-# src/pspi.c:692
-#: src/pspi.c:793
+#: src/pspi.c:958
 #, c-format
 msgid "pspi: BitBlt() failed: %s"
 msgstr "pspi: BitBlt() epäonnistui: %s"
 
-# src/pspi.c:981
-# src/pspi.c:1033
-#: src/pspi.c:1150
+#: src/pspi.c:1315
 #, c-format
 msgid "pspi: FindResource() failed for %s in %s"
 msgstr "pspi: FindResource() epäonnistui resurssille %s tiedostossa %s"
 
-# src/pspi.c:988
-# src/pspi.c:1040
-#: src/pspi.c:1157
+#: src/pspi.c:1322
 #, c-format
 msgid "pspi: LoadResource() failed for %s: %s"
 msgstr "pspi: LoadResource() epäonnistui resurssille %s: %s"
 
-# src/pspi.c:995
-# src/pspi.c:1047
-#: src/pspi.c:1164
+#: src/pspi.c:1329
 #, c-format
 msgid "pspi: LockResource() failed for PiPL resource from %s: %s"
 msgstr "pspi: LockResource() epäonnistui PiPL-resurssille tiedostossa %s: %s"
 
-# src/pspi.c:1004
-# src/pspi.c:1056
-#: src/pspi.c:1173
+#: src/pspi.c:1338
 #, c-format
 msgid "pspi: Wrong version of PiPL resource in %s: %ld, expected 0"
 msgstr ""
 "pspi: PiPL-resurssi tiedostossa %s on versiota %ld, käsittelen vain versiota "
 "0"
 
-# src/pspi.c:1020
-# src/pspi.c:1072
-#: src/pspi.c:1189
+#: src/pspi.c:1354
 #, c-format
 msgid "pspi: %s is not a Photoshop filter plug-in?"
 msgstr "pspi: %s ei ole Photoshopin suodin-plugin?"
 
-# src/pspi.c:1033
-# src/pspi.c:1086
-#: src/pspi.c:1203
+#: src/pspi.c:1368
 #, c-format
 msgid ""
 "pspi: Photoshop plug-in %s requires interface version %d.%d, I only know %d.%"
@@ -145,153 +109,107 @@ msgstr ""
 "pspi: Photoshop- plugin %s tarvitsee liittymäversiota %d.%d, osaan vain "
 "versiota %d.%d"
 
-# src/pspi.c:1077
-# src/pspi.c:1128
-#: src/pspi.c:1245
+#: src/pspi.c:1410
 #, c-format
 msgid "pspi: No entrypoint for %s in %s"
 msgstr "pspi: Aloitusosoitetta %s ei löydy tiedostosta %s"
 
-# src/pspi.c:1083
-# src/pspi.c:1134
-#: src/pspi.c:1251
+#: src/pspi.c:1416
 #, c-format
 msgid "pspi: No category specified for %s in %s"
 msgstr ""
 "pspi: Pluginille %s tiedostossa %s ei määritelty ylempää valikkosijaintia"
 
-# src/pspi.c:1089
-# src/pspi.c:1140
-#: src/pspi.c:1257
+#: src/pspi.c:1422
 #, c-format
 msgid "pspi: No name specified for %s in %s"
 msgstr ""
 "pspi: Pluginille %s tiedostossa %s ei määritelty tarkempaa valikkosijaintia"
 
-# src/pspi.c:1095
-# src/pspi.c:1146
-#: src/pspi.c:1263
+#: src/pspi.c:1428
 #, c-format
 msgid "pspi: No image types specified for %s in %s"
 msgstr ""
 "pspi: Pluginille %s tiedostossa %s ei määritelty sen käsiteltäviä kuvamuotoja"
 
-# src/pspi.c:1101 src/pspi.c:1442
-# src/pspi.c:1152 src/pspi.c:1486
-#: src/pspi.c:1269 src/pspi.c:1627
+#: src/pspi.c:1434 src/pspi.c:1777
 #, c-format
 msgid "pspi: GetProcAddress(%s,%s) failed: %s"
 msgstr "pspi: GetProcAddress(%s, %s) epäonnistui: %s"
 
-# src/pspi.c:1148
-# src/pspi.c:1175
-#: src/pspi.c:1292
+#: src/pspi.c:1457
 #, c-format
 msgid "pspi: LoadLibrary() failed for %s: %s"
 msgstr "pspi: LoadLibrary() epäonnistui tiedostolle %s: %s"
 
-# src/pspi.c:1132
-# src/pspi.c:1191
-#: src/pspi.c:1308
+#: src/pspi.c:1473
 #, c-format
 msgid "pspi: EnumResourceNames(PIPL) failed for %s: %s"
 msgstr "pspi: EnumResourceNames(PIPL) epäonnistui tiedostolle %s: %s"
 
-# src/pspi.c:1370
-# src/pspi.c:1414
-#: src/pspi.c:1555
+#: src/pspi.c:1705
 msgid "File read error"
 msgstr "Tiedoston lukuvirhe"
 
-# src/pspi.c:1373
-# src/pspi.c:1417
-#: src/pspi.c:1558
+#: src/pspi.c:1708
 msgid "File write error"
 msgstr "Tiedoston kirjoitusvirhe"
 
-# src/pspi.c:1376
-# src/pspi.c:1420
-#: src/pspi.c:1561
+#: src/pspi.c:1711
 msgid "File open error"
 msgstr "Tiedoston avausvirhe"
 
-# src/pspi.c:1379
-# src/pspi.c:1423
-#: src/pspi.c:1564
+#: src/pspi.c:1714
 msgid "Disk full"
 msgstr "Levy on täynnä"
 
-# src/pspi.c:1382
-# src/pspi.c:1426
-#: src/pspi.c:1567
+#: src/pspi.c:1717
 msgid "File I/O error"
 msgstr "Tiedoston luku- tai kirjoitusvirhe"
 
-# src/pspi.c:1385
-# src/pspi.c:1429
-#: src/pspi.c:1570
+#: src/pspi.c:1720
 msgid "Out of memory"
 msgstr "Muisti loppu"
 
-# src/pspi.c:1388
-# src/pspi.c:1432
-#: src/pspi.c:1573
+#: src/pspi.c:1723
 msgid "Null handle error"
 msgstr "Epäkelpo kahva"
 
-# src/pspi.c:1391
-# src/pspi.c:1435
-#: src/pspi.c:1576
+#: src/pspi.c:1726
 msgid "Bad parameters"
 msgstr "Epäkelvot parametrit"
 
-# src/pspi.c:1394
-# src/pspi.c:1438
-#: src/pspi.c:1579
+#: src/pspi.c:1729
 msgid "Unsupported image mode"
 msgstr "Kuvatila ei tuettu"
 
-# src/pspi.c:1397
-# src/pspi.c:1441
-#: src/pspi.c:1582
+#: src/pspi.c:1732
 msgid "Requires services not provided by this GIMP plug-in"
 msgstr "Vaatii palveluja joita tämä GIMP-plugin ei tarjoa"
 
-# src/pspi.c:1400
-# src/pspi.c:1444
-#: src/pspi.c:1585
+#: src/pspi.c:1735
 msgid "A requested property could not be found"
 msgstr "Pyydettyä propertya ei löytynyt"
 
-# src/pspi.c:1403
-# src/pspi.c:1447
-#: src/pspi.c:1588
+#: src/pspi.c:1738
 msgid "This GIMP plug-in does not support colBytes other than 1"
 msgstr "Tämä GIMP-plugin ei tue muita colBytes-arvoja kuin 1"
 
-# src/pspi.c:1406
-# src/pspi.c:1450
-#: src/pspi.c:1591
+#: src/pspi.c:1741
 msgid "Invalid sample point"
 msgstr "Epäkelpo näytekohta"
 
-# src/pspi.c:1409
-# src/pspi.c:1453
-#: src/pspi.c:1594
+#: src/pspi.c:1744
 #, c-format
 msgid "error code %d"
 msgstr "virhekoodi %d"
 
-# src/pspi.c:1415
-# src/pspi.c:1459
-#: src/pspi.c:1600
+#: src/pspi.c:1750
 #, c-format
 msgid "pspi: Problem invoking Photoshop plug-in: %s"
 msgstr "pspi: Photoshop-pluginin ajo epäonnistui: %s"
 
-# src/pspi.c:1432
-# src/pspi.c:1476
-#: src/pspi.c:1617
+#: src/pspi.c:1767
 #, c-format
 msgid "pspi: LoadLibrary(%s) failed: %s"
 msgstr "pspi: LoadLibrary(%s) epäonnistui: %s"

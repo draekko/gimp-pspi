@@ -1,0 +1,6 @@
+#undef ENABLE_NLS
+#undef GETTEXT_PACKAGE
+#undef HAVE_CATGETS
+#undef HAVE_GETTEXT
+#undef HAVE_LC_MESSAGES
+#undef HAVE_UNISTD_H

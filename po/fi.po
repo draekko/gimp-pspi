@@ -1,0 +1,236 @@
+# Finnish messages for pspi
+# Copyright (C) 2001 Tor Lillqvist <tml@iki.fi>
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: gimp-pspi\n"
+"POT-Creation-Date: 2001-12-22 03:40+0200\n"
+"PO-Revision-Date: 2001-12-22 02:50+0200\n"
+"Last-Translator: Tor Lillqvist <tml@iki.fi>\n"
+"Language-Team: Finnish <FI@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# src/interface.c:62
+#: src/interface.c:62
+msgid "Photoshop Plug-in Settings"
+msgstr "Photoshop-plugin-asetukset"
+
+# src/interface.c:67
+#: src/interface.c:67
+msgid "OK"
+msgstr ""
+
+# src/interface.c:69
+#: src/interface.c:69
+msgid "Cancel"
+msgstr "Peru"
+
+# src/interface.c:85
+#: src/interface.c:85
+msgid "Directories with Photoshop Plug-ins"
+msgstr "Hakemistoja joissa on Photoshop-plugineja"
+
+# src/interface.c:91
+#: src/interface.c:91
+msgid "You may specify multiple directories here."
+msgstr "Voit syöttää useita hakemistoja"
+
+# src/main.c:392
+#: src/main.c:369
+msgid "<Toolbox>/Help/About Photoshop plug-ins/"
+msgstr "<Toolbox>/Help/Tietoja Photoshop-plugineista/"
+
+# src/main.c:572
+#: src/main.c:583
+msgid "<Toolbox>/Xtns/Photoshop Plug-in Settings..."
+msgstr "<Toolbox>/Xtns/Photoshop-plugin-asetukset..."
+
+# src/main.c:706
+#: src/main.c:717
+#, c-format
+msgid "Applying %s:"
+msgstr "Sovellan %s"
+
+# src/pspi.c:642
+#: src/pspi.c:644
+#, c-format
+msgid "pspi: CreateDIBSection() failed: %s"
+msgstr "pspi: CreateDIBSection() epäonnistui: %s"
+
+# src/pspi.c:677
+#: src/pspi.c:679
+#, c-format
+msgid "pspi: BitBlt failed: %s"
+msgstr "pspi: BitBlt epäonnistui: %s"
+
+# src/pspi.c:981
+#: src/pspi.c:973
+#, c-format
+msgid "pspi: FindResource failed for %s in %s"
+msgstr "pspi: FindResource epäonnistui resurssille %s tiedostossa %s"
+
+# src/pspi.c:988
+#: src/pspi.c:980
+#, c-format
+msgid "pspi: LoadResource failed for %s: %s"
+msgstr "pspi: LoadResource epäonnistui resurssille %s: %s"
+
+# src/pspi.c:995
+#: src/pspi.c:987
+#, c-format
+msgid "pspi: LockResource failed for PiPL resource from %s: %s"
+msgstr "pspi: LockResource epäonnistui PiPL-resurssille tiedostossa %s: %s"
+
+# src/pspi.c:1004
+#: src/pspi.c:996
+#, c-format
+msgid "pspi: Wrong version of PiPL resource in %s: %ld, expected 0"
+msgstr ""
+"pspi: PiPL-resurssi tiedostossa %s on versiota %ld, käsittelen vain versiota "
+"0"
+
+# src/pspi.c:1020
+#: src/pspi.c:1012
+#, c-format
+msgid "pspi: %s is not a Photoshop filter plug-in?"
+msgstr "pspi: %s ei ole Photoshopin suodin-plugin?"
+
+# src/pspi.c:1033
+#: src/pspi.c:1026
+#, c-format
+msgid ""
+"pspi: Photoshop plug-in %s requires interface version %d.%d, I only know %d.%"
+"d"
+msgstr ""
+"pspi: Photoshop- plugin %s tarvitsee liittymäversiota %d.%d, osaan vain "
+"versiota %d.%d"
+
+# src/pspi.c:1077
+#: src/pspi.c:1070
+#, c-format
+msgid "pspi: No entrypoint for %s in %s"
+msgstr "pspi: Aloitusosoitetta %s ei löydy tiedostosta %s"
+
+# src/pspi.c:1083
+#: src/pspi.c:1076
+#, c-format
+msgid "pspi: No category specified for %s in %s"
+msgstr ""
+"pspi: Pluginille %s tiedostossa %s ei määritelty ylempää valikkosijaintia"
+
+# src/pspi.c:1089
+#: src/pspi.c:1082
+#, c-format
+msgid "pspi: No name specified for %s in %s"
+msgstr ""
+"pspi: Pluginille %s tiedostossa %s ei määritelty tarkempaa valikkosijaintia"
+
+# src/pspi.c:1095
+#: src/pspi.c:1088
+#, c-format
+msgid "pspi: No image types specified for %s in %s"
+msgstr ""
+"pspi: Pluginille %s tiedostossa %s ei määritelty sen käsiteltäviä kuvamuotoja"
+
+# src/pspi.c:1101 src/pspi.c:1442
+#: src/pspi.c:1094 src/pspi.c:1427
+#, c-format
+msgid "pspi: GetProcAddress (%s, %s) failed: %s"
+msgstr "pspi: GetProcAddress (%s, %s) epäonnistui: %s"
+
+# src/pspi.c:1148
+#: src/pspi.c:1117
+#, c-format
+msgid "pspi: LoadLibrary() failed for %s: %s"
+msgstr "pspi: LoadLibrary() epäonnistui tiedostolle %s: %s"
+
+# src/pspi.c:1132
+#: src/pspi.c:1133
+#, fuzzy, c-format
+msgid "pspi: EnumResourceNames (PIPL) failed for %s: %s"
+msgstr "pspi: EnumResourceNames (PIPL) epäonnistui: %s"
+
+# src/pspi.c:1370
+#: src/pspi.c:1355
+msgid "File read error"
+msgstr "Tiedoston lukuvirhe"
+
+# src/pspi.c:1373
+#: src/pspi.c:1358
+msgid "File write error"
+msgstr "Tiedoston kirjoitusvirhe"
+
+# src/pspi.c:1376
+#: src/pspi.c:1361
+msgid "File open error"
+msgstr "Tiedoston avausvirhe"
+
+# src/pspi.c:1379
+#: src/pspi.c:1364
+msgid "Disk full"
+msgstr "Levy on täynnä"
+
+# src/pspi.c:1382
+#: src/pspi.c:1367
+msgid "File I/O error"
+msgstr "Tiedoston luku- tai kirjoitusvirhe"
+
+# src/pspi.c:1385
+#: src/pspi.c:1370
+msgid "Out of memory"
+msgstr "Muisti loppu"
+
+# src/pspi.c:1388
+#: src/pspi.c:1373
+msgid "Null handle error"
+msgstr "Epäkelpo kahva"
+
+# src/pspi.c:1391
+#: src/pspi.c:1376
+msgid "Bad parameters"
+msgstr "Epäkelvot parametrit"
+
+# src/pspi.c:1394
+#: src/pspi.c:1379
+msgid "Unsupported image mode"
+msgstr "Kuvatila ei tuettu"
+
+# src/pspi.c:1397
+#: src/pspi.c:1382
+msgid "Requires services not provided by this GIMP plug-in"
+msgstr "Vaatii palveluja joita tämä GIMP-plugin ei tarjoa"
+
+# src/pspi.c:1400
+#: src/pspi.c:1385
+msgid "A requested property could not be found"
+msgstr "Pyydettyä propertya ei löytynyt"
+
+# src/pspi.c:1403
+#: src/pspi.c:1388
+msgid "This GIMP plug-in does not support colBytes other than 1"
+msgstr "Tämä GIMP-plugin ei tue muita colBytes-arvoja kuin 1"
+
+# src/pspi.c:1406
+#: src/pspi.c:1391
+msgid "Invalid sample point"
+msgstr "Epäkelpo näytekohta"
+
+# src/pspi.c:1409
+#: src/pspi.c:1394
+#, c-format
+msgid "error code %d"
+msgstr "virhekoodi %d"
+
+# src/pspi.c:1415
+#: src/pspi.c:1400
+#, fuzzy, c-format
+msgid "pspi: Problem invoking Photoshop plug-in: %s"
+msgstr "Hakemistoja joissa on Photoshop plug-ineja"
+
+# src/pspi.c:1432
+#: src/pspi.c:1417
+#, c-format
+msgid "pspi: LoadLibrary (%s) failed: %s"
+msgstr "pspi: LoadLibrary (%s) epäonnistui: %s"

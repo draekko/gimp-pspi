@@ -1,0 +1,14 @@
+2001-12-22  Tor Lillqvist  <tml@iki.fi>
+
+	* src/main.c
+	* src/pspi.c: Add Help About functionality.
+
+2001-12-21  Tor Lillqvist  <tml@iki.fi>
+
+	Seems to work reasonably well now.
+
+	* configure.in: Bump version number to 1.0.0.
+
+2001-12-10  Tor Lillqvist  <tml@iki.fi>
+
+	* Started work on this.

@@ -1,5 +1,14 @@
 2001-12-28  Tor Lillqvist  <tml@iki.fi>
 
+	* src/main.c (init): Don't try to rename the pspirc file to
+	pspirc.bak if it isn't there.
+
+	* src/pspi.c (pspi_prepare): Remove leftover debugging output.
+
+2001-12-28  Tor Lillqvist  <tml@iki.fi>
+
+	* src/pspi.c (pspi_prepare): 
+
 	* configure.in: Bump version number to 1.0.1.
 
 	* src/main.c: Store pspi settings in a separate pspirc file (in

@@ -718,7 +718,7 @@ display_pixels_proc (const PSPixelMap *source,
     }
 #endif /* PSPI_WITH_DEBUGGING */
 
-  /* Some plug-ins call displayPixels with bogux parameters */
+  /* Some plug-ins call displayPixels with bogus parameters */
   if (hdc == NULL || source->rowBytes == 0 || source->baseAddr == 0)
     return filterBadParameters;
 
@@ -1793,25 +1793,21 @@ pspi_prepare (PSPlugInEntry *pspie,
   switch (image_type)
     {
     case GIMP_RGB_IMAGE:
-      g_print ("RGB\n");
       filter.imageMode = plugInModeRGBColor;
       filter.inLayerPlanes = 3;
       filter.inTransparencyMask = 0;
       break;
     case GIMP_RGBA_IMAGE:
-      g_print ("RGBA\n");
       filter.imageMode = plugInModeRGBColor;
       filter.inLayerPlanes = 3;
       filter.inTransparencyMask = 1;
       break;
     case GIMP_GRAY_IMAGE:
-      g_print ("GRAY\n");
       filter.imageMode = plugInModeGrayScale;
       filter.inLayerPlanes = 1;
       filter.inTransparencyMask = 0;
       break;
     case GIMP_GRAYA_IMAGE:
-      g_print ("GRAYA\n");
       filter.imageMode = plugInModeGrayScale;
       filter.inLayerPlanes = 1;
       filter.inTransparencyMask = 1;

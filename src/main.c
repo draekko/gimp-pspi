@@ -625,7 +625,8 @@ init (void)
 	  fprintf (pspirc, "</pspi-settings>\n");
 	  fclose (pspirc);
 	  remove (bak_name);
-	  if (rename (pspirc_name, bak_name) != 0)
+	  if (g_file_test (pspirc_name, G_FILE_TEST_EXISTS) &&
+	      rename (pspirc_name, bak_name) != 0)
 	    g_message (_("Could not rename %s to %s"),
 		       pspirc_name, bak_name);
 	  else

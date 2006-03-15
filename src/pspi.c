@@ -105,6 +105,84 @@ static PlatformData platform;
 static FilterRecord filter;
 static int32 data;
 
+#ifndef G_OS_WIN32
+
+/* For winegcc compilation on Linux. Lifted from GLib. */
+
+#define G_WIN32_HAVE_WIDECHAR_API() 1
+
+/**
+ * g_win32_error_message:
+ * @error: error code.
+ *
+ * Translate a Win32 error code (as returned by GetLastError()) into
+ * the corresponding message. The message is either language neutral,
+ * or in the thread's language, or the user's language, the system's
+ * language, or US English (see docs for FormatMessage()). The
+ * returned string is in UTF-8. It should be deallocated with
+ * g_free().
+ *
+ * Returns: newly-allocated error message
+ **/
+static gchar *
+g_win32_error_message (gint error)
+{
+  gchar *retval;
+
+  if (G_WIN32_HAVE_WIDECHAR_API ())
+    {
+      wchar_t *msg = NULL;
+      int nchars;
+
+      FormatMessageW (FORMAT_MESSAGE_ALLOCATE_BUFFER
+		      |FORMAT_MESSAGE_IGNORE_INSERTS
+		      |FORMAT_MESSAGE_FROM_SYSTEM,
+		      NULL, error, 0,
+		      (LPWSTR) &msg, 0, NULL);
+      if (msg != NULL)
+	{
+	  nchars = wcslen (msg);
+
+	  if (nchars > 2 && msg[nchars-1] == '\n' && msg[nchars-2] == '\r')
+	    msg[nchars-2] = '\0';
+	  
+	  retval = g_utf16_to_utf8 (msg, -1, NULL, NULL, NULL);
+	  
+	  LocalFree (msg);
+	}
+      else
+	retval = g_strdup ("");
+    }
+  else
+    {
+      gchar *msg = NULL;
+      int nbytes;
+
+      FormatMessageA (FORMAT_MESSAGE_ALLOCATE_BUFFER
+		      |FORMAT_MESSAGE_IGNORE_INSERTS
+		      |FORMAT_MESSAGE_FROM_SYSTEM,
+		      NULL, error, 0,
+		      (LPTSTR) &msg, 0, NULL);
+      if (msg != NULL)
+	{
+	  nbytes = strlen (msg);
+
+	  if (nbytes > 2 && msg[nbytes-1] == '\n' && msg[nbytes-2] == '\r')
+	    msg[nbytes-2] = '\0';
+	  
+	  retval = g_locale_to_utf8 (msg, -1, NULL, NULL, NULL);
+	  
+	  LocalFree (msg);
+	}
+      else
+	retval = g_strdup ("");
+    }
+
+  return retval;
+}
+
+#endif
+
 static char *
 int32_as_be_4c (int32 i)
 {
@@ -955,8 +1033,9 @@ display_pixels_proc (const PSPixelMap *source,
 
   if (!BitBlt (hdc, dstCol, dstRow, bmi.bi.biWidth, -bmi.bi.biHeight, hmemdc,
 	       0, 0, SRCCOPY))
-    g_message (_("pspi: BitBlt() failed: %s"),
-	       g_win32_error_message (GetLastError ()));
+    if (GetLastError () != ERROR_SUCCESS)
+      g_message (_("pspi: BitBlt() failed: %s"),
+		 g_win32_error_message (GetLastError ()));
 
   SelectObject (hmemdc, holdbm);
   DeleteDC (hmemdc);

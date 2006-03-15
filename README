@@ -5,17 +5,22 @@ This is pspi, a GIMP plug-in that interfaces to Photoshop filter plug-ins.
 
 First, the bad news: Pspi only works on systems that understand i386
 Windows executables, more specifically, DLLs. (Photoshop plug-ins are
-actually DLLs.) Pspi was developed on (i386) Windows. It might be
-possible to make it work also on i386 Unixes (Linux, FreeBSD,
-Solaris), using Wine (www.winehq.org) to aid in running the code in
-the Photoshop plug-in. (Or some similar commercial software.) (No, I
-have no idea how this would actually be implemented, it's just my
-intuition that tells me it might be possible to attach a Windows DLL
-to a Unix process using Wine.) 
+actually DLLs.) Pspi was developed on (i386) Windows. It is also
+possible to compile and use it on i386 Linux, using Wine.
 
-To build pspi, you will need the headers from the Adobe Photoshop
-SDK. It is freely available from Adobe, look around on Adobe's web
-site.
+To build pspi, you will need the headers from the Adobe Photoshop 6
+SDK. It used to freely available from Adobe, but unfortunately isn't
+any longer. If you can find an old copy of Photoshop 6, the SDK is
+included on the CD.
+
+To build pspi on Linux, configure it like this:
+
+CC=winegcc ./configure --with-pssdk=/path/to/pssdk6
+
+Before compiling on Linux, you need to fix one glitch in the PS6 SDK
+headers: in PhotoshopAPI/Pica_sp/SPProps.h, change the #include of
+SPMdata.h to use the correct file name SPMData.h. (On Windows, this of
+course is not relevant as the file system is case-insensitive.)
 
 Debugging pspi
 ==============
@@ -87,4 +92,4 @@ opaque type, they "know" that a Handle in fact is a pointer to a
 pointer, and use it like that without calling the "lock" API which is
 the documented way to get the pointer from a Handle.
 
-Tor Lillqvist <tml@iki.fi>, December 2001.
+Tor Lillqvist <tml@iki.fi>, December 2001, March 2006.

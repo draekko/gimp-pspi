@@ -37,7 +37,7 @@ INCLUDES = \
 
 LDADD = \
 	$(GIMP_LIBS)	\
-	-ladvapi32
+	-ladvapi32 -lgdi32
 
 AM_CPPFLAGS = \
 	-DLOCALEDIR=\""$(LOCALEDIR)"\"
@@ -47,3 +47,9 @@ piproxy.8bf : piproxy.c proxies.c
 
 proxies.c : genproxies.m4
 	m4 genproxies.m4 >$@
+
+if OS_WIN32
+else
+install-exec-hook:
+	$(INSTALL) pspi.exe.so $(bindir)	
+endif

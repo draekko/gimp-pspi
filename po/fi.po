@@ -4,7 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: gimp-pspi\n"
-"POT-Creation-Date: 2001-12-29 03:16+0200\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2003-06-20 21:29+0000\n"
 "PO-Revision-Date: 2001-12-22 02:50+0200\n"
 "Last-Translator: Tor Lillqvist <tml@iki.fi>\n"
 "Language-Team: Finnish <FI@li.org>\n"
@@ -29,8 +30,9 @@ msgid "Directories with Photoshop Plug-ins"
 msgstr "Hakemistoja joissa on Photoshop-plugineja"
 
 #: src/interface.c:91
-msgid "You may specify multiple directories here."
-msgstr "Voit syöttää useita hakemistoja"
+#, fuzzy
+msgid "Specify directories where to look for Photoshop plug-ins."
+msgstr "Hakemistoja joissa on Photoshop-plugineja"
 
 #: src/main.c:236
 msgid "Invalid pspirc syntax"
@@ -213,3 +215,6 @@ msgstr "pspi: Photoshop-pluginin ajo epäonnistui: %s"
 #, c-format
 msgid "pspi: LoadLibrary(%s) failed: %s"
 msgstr "pspi: LoadLibrary(%s) epäonnistui: %s"
+
+#~ msgid "You may specify multiple directories here."
+#~ msgstr "Voit syöttää useita hakemistoja"

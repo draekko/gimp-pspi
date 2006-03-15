@@ -403,7 +403,7 @@ my_ftw (const gchar *path,
 	  gint retval;
 
 	  retval = (*function) (file, &s);
-	  if (retval == 0 && (s.st_mode & _S_IFDIR))
+	  if (retval == 0 && (s.st_mode & S_IFDIR))
 	    retval = my_ftw (file, function);
 
 	  if (retval != 0)

@@ -1,3 +1,22 @@
+2006-03-15  Tor Lillqvist  <tml@novell.com>
+
+	* README: Update for Linux builds.
+
+	* configure.in: Bump version to 1.0.4.
+
+	* src/Makefile.am: Link explicitly with -lgdi32 for winegcc's sake.
+
+	* src/main.c (my_ftw): Use S_IFDIR instead of _S_IFDIR. Also mingw has S_IFDIR.
+
+	* src/pspi.c (g_win32_error_message)
+	* src/dump-resources.c (g_win32_error_message)
+	* src/copy-resources.c (g_win32_error_message): Include
+	g_win32_error_message() from GLib when building on Linux.
+
+	* src/pspi.c (display_pixels_proc): Don't display error message if
+	BitBlt() fails but GetLastError() says there was no error
+	(huh?). That seems to happen with Wine a lot.
+
 2004-05-06  Tor Lillqvist  <tml@iki.fi>
 
 	* === Released 1.0.3 ===

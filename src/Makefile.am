@@ -48,8 +48,8 @@ piproxy.8bf : piproxy.c proxies.c
 proxies.c : genproxies.m4
 	m4 genproxies.m4 >$@
 
+install-exec-hook:
 if OS_WIN32
 else
-install-exec-hook:
 	$(INSTALL) pspi.exe.so $(bindir)	
 endif

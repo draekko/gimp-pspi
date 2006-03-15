@@ -27,6 +27,7 @@ AM_CONFIG_HEADER(config.h)
 
 AM_INIT_AUTOMAKE(no-define)
 
+AC_CANONICAL_HOST
 AC_MSG_CHECKING([for native Win32])
 case "$host" in
   *-*-mingw*)

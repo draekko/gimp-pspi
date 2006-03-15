@@ -4,7 +4,8 @@
 
 	* configure.in: Bump version to 1.0.4.
 
-	* src/Makefile.am: Link explicitly with -lgdi32 for winegcc's sake.
+	* src/Makefile.am: Link explicitly with -lgdi32 for winegcc's
+	sake. On Linux, install the pspi.exe.so, too.
 
 	* src/main.c (my_ftw): Use S_IFDIR instead of _S_IFDIR. Also mingw has S_IFDIR.
 

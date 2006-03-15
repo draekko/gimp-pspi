@@ -2,7 +2,8 @@
 
 	* README: Update for Linux builds.
 
-	* configure.in: Bump version to 1.0.4.
+	* configure.in: Bump version to 1.0.4. Call AC_CANONICAL_HOST
+	before looking at $host.
 
 	* src/Makefile.am: Link explicitly with -lgdi32 for winegcc's
 	sake. On Linux, install the pspi.exe.so, too.

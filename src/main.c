@@ -32,6 +32,11 @@
 #include <gtk/gtk.h>
 
 #include <libgimp/gimp.h>
+#include <libgimp/gimpui.h>
+
+#ifdef G_OS_WIN32
+#include <process.h>
+#endif
 
 #define STRICT
 #include <windows.h>
@@ -47,6 +52,7 @@
 
 #define PSPI_PATH_TOKEN "pspi-path"
 #define PSPIRC "pspirc"
+#define DEBUGGER_SLEEP_TIME 20000000
 
 #define PSPI_SETTINGS_NAME "pspi_settings"
 
@@ -583,8 +589,8 @@ setup_debug_mask (void)
 
 #endif
 
-  PSPI_DEBUG (DEBUGGER, (g_print ("Sleeping, attach with debugger NOW\n"),
-			 g_usleep (20000000),
+  PSPI_DEBUG (DEBUGGER, (g_print ("Sleeping %d s, attach pid %d in debugger NOW\n", DEBUGGER_SLEEP_TIME / 1000000, getpid ()),
+			 g_usleep (DEBUGGER_SLEEP_TIME),
 			 g_print ("Continuing\n")));
 }
 
@@ -748,7 +754,7 @@ run_help_about (const gchar	*pdb_name,
   GimpRunMode run_mode = param[0].data.d_int32;
   GimpPDBStatusType status = GIMP_PDB_SUCCESS;
   PSPlugInEntry *pspie;
-  gchar *name = pdb_name + strlen (HELP_ABOUT_PREFIX);
+  const gchar *name = pdb_name + strlen (HELP_ABOUT_PREFIX);
 
   get_saved_plugin_data ();
 
@@ -799,6 +805,8 @@ run_pspi (const gchar  	  *pdb_name,
 	    return status;
 	}
       drawable = gimp_drawable_get (param[2].data.d_drawable);
+
+      gimp_ui_init (PLUGIN_NAME, TRUE);
 
       if ((status = pspi_prepare (pspie, drawable)) != GIMP_PDB_SUCCESS)
 	return status;

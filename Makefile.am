@@ -2,3 +2,4 @@
 
 SUBDIRS = po src
 
+EXTRA_DIST = README.linux

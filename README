@@ -6,7 +6,7 @@ This is pspi, a GIMP plug-in that interfaces to Photoshop filter plug-ins.
 First, the bad news: Pspi only works on systems that understand i386
 Windows executables, more specifically, DLLs. (Photoshop plug-ins are
 actually DLLs.) Pspi was developed on (i386) Windows. It is also
-possible to compile and use it on i386 Linux, using Wine.
+possible to build and use it on i386 Linux, using Wine.
 
 To build pspi, you will need the headers from the Adobe Photoshop 6
 SDK. It used to freely available from Adobe, but unfortunately isn't
@@ -31,13 +31,17 @@ command prompt):
 
 set PSPI_DEBUG=resource_suite:debugger
 
+(or in a Linux shell):
+
+export PSPI_DEBUG=pipl
+
 See the source code for other possible values. Obviously, this
 environment variable must be set before starting the GIMP (which
 eventually runs pspi).
 
-As pspi is a Windows GUI application, to actually see the debugging
-print-out, you have to start GIMP with stdout going somewhere, for
-instance:
+On Windows, as pspi is a Windows GUI application, to actually see the
+debugging print-out, you have to start GIMP from a command line with
+stdout going somewhere, for instance:
 
 	gimp --verbose | cat
 

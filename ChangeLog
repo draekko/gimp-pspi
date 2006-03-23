@@ -1,4 +1,24 @@
-2006-03-15  Tor Lillqvist  <tml@novell.com>
+2006-03-23  Tor Lillqvist  <tml@iki.fi>
+
+	* === Released 1.0.5 ===
+
+	* README.linux: New file.
+
+	* Makefile.am: Add it to EXTRA_DIST.
+
+	* src/pspi.c (resource_name): New helper function to print
+	resource names even if the name actually is an integer resource
+	id.
+	(enum_names): Use resource_name() in debugging output. If a PS
+	plug-in has no image mode property, assume it supports RGB*.
+
+	* src/main.c (setup_debug_mask): Tell what pid to attach to if
+	debugging.
+	(run_pspi): Call gimp_ui_init() as we will eventually have some own UI.
+
+	* src/pspi.c: Include function name in all the debugging output.
+
+2006-03-15  Tor Lillqvist  <tml@iki.fi>
 
 	* === Released 1.0.4 ===
 

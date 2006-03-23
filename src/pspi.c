@@ -1,4 +1,4 @@
-#define PING() g_print (G_STRLOC "\n")
+#define PING() g_print (G_STRLOC ":%s:\n", __FUNCTION__)
 
 /* pspi -- a GIMP plug-in to interface to Photoshop plug-ins.
  *
@@ -47,7 +47,7 @@
 #include "plugin-intl.h"
 
 #define RECT_NONEMPTY(r) (r.left < r.right && r.top < r.bottom)
-#define PRINT_RECT(r) g_print ("%d:%dx%d:%d", r.left, r.right, r.top, r.bottom)
+#define PRINT_RECT(r) g_print ("%dx%d@%+d%+d", r.right-r.left, r.bottom-r.top, r.right, r.top)
 
 #define PSPI_PARAMETER_TOKEN "pspi-parameter-%s"
 #define PSPI_PARAMETER_HGLOBAL_TOKEN "pspi-parameter-hglobal-%s"
@@ -241,7 +241,7 @@ buffer_allocate_proc (int32     size,
                       BufferID *bufferID)
 {
   *bufferID = g_malloc (size);
-  PSPI_DEBUG (BUFFER_SUITE, g_print (G_STRLOC ": %ld: %p\n", size, *bufferID));
+  PSPI_DEBUG (BUFFER_SUITE, g_print (G_STRLOC ":%s: %ld: %p\n", __FUNCTION__, size, *bufferID));
 
   return noErr;
 }
@@ -250,7 +250,7 @@ static Ptr
 buffer_lock_proc (BufferID bufferID,
                   Boolean  moveHigh)
 {
-  PSPI_DEBUG (BUFFER_SUITE, g_print (G_STRLOC ": %p\n", bufferID));
+  PSPI_DEBUG (BUFFER_SUITE, g_print (G_STRLOC ":%s: %p\n", __FUNCTION__, bufferID));
 
   return (Ptr) bufferID;
 }
@@ -258,13 +258,13 @@ buffer_lock_proc (BufferID bufferID,
 static void
 buffer_unlock_proc (BufferID bufferID)
 {
-  PSPI_DEBUG (BUFFER_SUITE, g_print (G_STRLOC ": %p\n", bufferID));
+  PSPI_DEBUG (BUFFER_SUITE, g_print (G_STRLOC ":%s: %p\n", __FUNCTION__, bufferID));
 }
 
 static void
 buffer_free_proc (BufferID bufferID)
 {
-  PSPI_DEBUG (BUFFER_SUITE, g_print (G_STRLOC ": %p\n", bufferID));
+  PSPI_DEBUG (BUFFER_SUITE, g_print (G_STRLOC ":%s: %p\n", __FUNCTION__, bufferID));
 
   g_free (bufferID);
 }
@@ -318,7 +318,8 @@ handle_new_proc (int32 size)
   PspiHandle *result = g_new (PspiHandle, 1);
   result->pointer = g_malloc (size);
   result->size = size;
-  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %ld: %p, %p\n",
+  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %ld: %p, %p\n",
+				     __FUNCTION__,
 				     size, result, result->pointer));
   if (handles == NULL)
     handles = g_hash_table_new (NULL, NULL);
@@ -335,25 +336,26 @@ handle_dispose_proc (Handle h)
     {
       if (GlobalSize ((HGLOBAL) h) > 0)
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL!\n", h));
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p is HGLOBAL!\n", __FUNCTION__, h));
 	  GlobalFree ((HGLOBAL) h);
 	  return;
 	}
       else if (!IsBadReadPtr (h, sizeof (HGLOBAL *)) &&
 	       GlobalSize (*(HGLOBAL *) h) > 0)
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL*!\n", h));
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p is HGLOBAL*!\n", __FUNCTION__, h));
 	  GlobalFree (*(HGLOBAL *) h);
 	  return;
 	}
       else
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p INVALID!\n", h));
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p INVALID!\n", __FUNCTION__, h));
 	  return;
 	}
     }
 
-  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p, %p\n",
+  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p, %p\n",
+				     __FUNCTION__,
 				     h, ((PspiHandle *)h)->pointer));
   g_free (((PspiHandle *) h)->pointer);
   g_free ((PspiHandle *) h);
@@ -369,27 +371,29 @@ handle_get_size_proc (Handle h)
     {
       if ((size = GlobalSize ((HGLOBAL) h)) > 0)
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL!: %d\n",
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p is HGLOBAL!: %d\n",
+					     __FUNCTION__,
 					     h, size));
 	  return size;
 	}
       else if (!IsBadReadPtr (h, sizeof (HGLOBAL *)) &&
 	       (size = GlobalSize (*(HGLOBAL *) h)) > 0)
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL*!: %d\n",
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p is HGLOBAL*!: %d\n",
+					     __FUNCTION__,
 					     h, size));
 	  return size;
 	}
       else
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p INVALID!\n", h));
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p INVALID!\n", __FUNCTION__, h));
 	  /* No idea... */
 	  return 0;
 	}
     }
   
-  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p: %d\n",
-				     h, ((PspiHandle *)h)->size));
+  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p: %d\n",
+				     __FUNCTION__, h, ((PspiHandle *)h)->size));
   return ((PspiHandle *) h)->size;
 }
 
@@ -401,8 +405,8 @@ handle_set_size_proc (Handle h,
     {
       if (GlobalSize ((HGLOBAL) h) > 0)
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL!, %ld\n",
-					     h, newSize));
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p is HGLOBAL!, %ld\n",
+					     __FUNCTION__, h, newSize));
 	  if (GlobalReAlloc ((HGLOBAL) h, newSize, 0) != (HGLOBAL) h)
 	    return nilHandleErr;
 	  return noErr;
@@ -410,21 +414,22 @@ handle_set_size_proc (Handle h,
       else if (!IsBadReadPtr (h, sizeof (HGLOBAL *)) &&
 	       GlobalSize (*(HGLOBAL *) h) > 0)
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL*!\n", h));
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p is HGLOBAL*!\n", __FUNCTION__, h));
 	  *((HGLOBAL *) h) = GlobalReAlloc (*(HGLOBAL *) h, newSize, 0);
 	  return noErr;
 	}
       else
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p INVALID, %ld!\n",
-					     h, newSize));
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p INVALID, %ld!\n",
+					     __FUNCTION__, h, newSize));
 	  return nilHandleErr;
 	}
     }
 
   ((PspiHandle *) h)->pointer = g_realloc (((PspiHandle *) h)->pointer, newSize);
   ((PspiHandle *) h)->size = newSize;
-  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p, %ld: %p\n",
+  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p, %ld: %p\n",
+				     __FUNCTION__,
 				     h, newSize, ((PspiHandle *)h)->pointer));
   return noErr;
 }
@@ -437,18 +442,18 @@ handle_lock_proc (Handle  h,
     {
       if (GlobalSize ((HGLOBAL) h) > 0)
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL!\n", h));
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p is HGLOBAL!\n", __FUNCTION__, h));
 	  return GlobalLock ((HGLOBAL) h);
 	}
       else if (!IsBadReadPtr (h, sizeof (HGLOBAL *)) &&
 	       GlobalSize (*(HGLOBAL *) h) > 0)
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL*!\n", h));
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p is HGLOBAL*!\n", __FUNCTION__, h));
 	  return GlobalLock (*(HGLOBAL *) h);
 	}
       else
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p INVALID!\n", h));
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p INVALID!\n", __FUNCTION__, h));
 	  /* Guess that it still is a pointer to a pointer, sigh... */
 	  if (!IsBadReadPtr (h, sizeof (gpointer)) &&
 	      !IsBadWritePtr (*(gpointer *) h, 8))
@@ -462,8 +467,8 @@ handle_lock_proc (Handle  h,
 	}
     }
   
-  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p: %p\n",
-				     h, ((PspiHandle *)h)->pointer));
+  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p: %p\n",
+				     __FUNCTION__, h, ((PspiHandle *)h)->pointer));
   return ((PspiHandle *) h)->pointer;
 }
 
@@ -474,32 +479,32 @@ handle_unlock_proc (Handle h)
     {
       if (GlobalSize ((HGLOBAL) h) > 0)
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL!\n", h));
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p is HGLOBAL!\n", __FUNCTION__, h));
 	  GlobalUnlock ((HGLOBAL) h);
 	  return;
 	}	
       else if (!IsBadReadPtr (h, sizeof (HGLOBAL *)) &&
 	       GlobalSize (*(HGLOBAL *) h) > 0)
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL*!\n", h));
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p is HGLOBAL*!\n", __FUNCTION__, h));
 	  GlobalUnlock (*(HGLOBAL *) h);
 	  return;
 	}
       else
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p INVALID!\n", h));
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p INVALID!\n", __FUNCTION__, h));
 	  return;
 	}
     }
  
-  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p, %p\n",
-				     h, ((PspiHandle *)h)->pointer));
+  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p, %p\n",
+				     __FUNCTION__, h, ((PspiHandle *)h)->pointer));
 }
 
 static void
 handle_recover_space_proc (int32 size)
 {
-  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %ld\n", size));
+  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %ld\n", __FUNCTION__, size));
 }
 
 static void
@@ -511,25 +516,25 @@ handle_dispose_regular_proc (Handle h)
     {
       if (GlobalSize ((HGLOBAL) h) > 0)
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL!\n", h));
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p is HGLOBAL!\n", __FUNCTION__, h));
 	  GlobalFree ((HGLOBAL) h);
 	  return;
 	}
       else if (!IsBadReadPtr (h, sizeof (HGLOBAL *)) &&
 	       GlobalSize (*(HGLOBAL *) h) > 0)
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p is HGLOBAL*!\n", h));
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p is HGLOBAL*!\n", __FUNCTION__, h));
 	  GlobalFree (*(HGLOBAL *) h);
 	  return;
 	}
       else
 	{
-	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p INVALID!\n", h));
+	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p INVALID!\n", __FUNCTION__, h));
 	  return;
 	}
     }
  
-  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ": %p\n", h));
+  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p\n", __FUNCTION__, h));
 }
 
 static OSErr
@@ -587,7 +592,8 @@ property_get_proc (PIType  signature,
                    int32  *simpleProperty,
                    Handle *complexProperty)
 {
-  PSPI_DEBUG (PROPERTY_SUITE, g_print (G_STRLOC ": %s %s\n",
+  PSPI_DEBUG (PROPERTY_SUITE, g_print (G_STRLOC ":%s: %s %s\n",
+				       __FUNCTION__,
 				       int32_as_be_4c (signature),
 				       int32_as_be_4c (key)));
 
@@ -671,7 +677,8 @@ property_set_proc (PIType signature,
                    int32  simpleProperty,
                    Handle complexProperty)
 {
-  PSPI_DEBUG (PROPERTY_SUITE, g_print (G_STRLOC ": %s %s\n",
+  PSPI_DEBUG (PROPERTY_SUITE, g_print (G_STRLOC ":%s: %s %s\n",
+				       __FUNCTION__,
 				       int32_as_be_4c (signature),
 				       int32_as_be_4c (key)));
 
@@ -714,7 +721,8 @@ resource_count_proc (ResType ofType)
       i++;
     }
 
-  PSPI_DEBUG (RESOURCE_SUITE, g_print (G_STRLOC ": %s: %d\n",
+  PSPI_DEBUG (RESOURCE_SUITE, g_print (G_STRLOC ":%s: %s: %d\n",
+				       __FUNCTION__,
 				       int32_as_be_4c (ofType), i));
   return i;
 }
@@ -733,7 +741,8 @@ resource_get_proc (ResType ofType,
 
   if (parasite == NULL)
     {
-      PSPI_DEBUG (RESOURCE_SUITE, g_print (G_STRLOC ": %s, %d: 0\n",
+      PSPI_DEBUG (RESOURCE_SUITE, g_print (G_STRLOC ":%s: %s, %d: 0\n",
+					   __FUNCTION__,
 					   int32_as_be_4c (ofType), index));
       return (Handle) 0;
     }
@@ -744,7 +753,8 @@ resource_get_proc (ResType ofType,
   handle_unlock_proc (result);
   gimp_parasite_free (parasite);
   
-  PSPI_DEBUG (RESOURCE_SUITE, g_print (G_STRLOC ": %s, %d: %p\n",
+  PSPI_DEBUG (RESOURCE_SUITE, g_print (G_STRLOC ":%s: %s, %d: %p\n",
+				       __FUNCTION__,
 				       int32_as_be_4c (ofType), index, result));
   return result;
 }
@@ -757,7 +767,8 @@ resource_delete_proc (ResType ofType,
   gchar token[20];
   gint i;
 
-  PSPI_DEBUG (RESOURCE_SUITE, g_print (G_STRLOC ": %s, %d\n",
+  PSPI_DEBUG (RESOURCE_SUITE, g_print (G_STRLOC ":%s: %s, %d\n",
+				       __FUNCTION__,
 				       int32_as_be_4c (ofType), index));
 
   sprintf (token, "pspi-res-%s-%d", int32_as_be_4c (ofType), index);
@@ -788,7 +799,8 @@ resource_add_proc (ResType ofType,
   gpointer p;
   gint size;
 
-  PSPI_DEBUG (RESOURCE_SUITE, g_print (G_STRLOC ": %s, %p\n",
+  PSPI_DEBUG (RESOURCE_SUITE, g_print (G_STRLOC ":%s: %s, %p\n",
+				       __FUNCTION__,
 				       int32_as_be_4c (ofType), data));
 
   i = resource_count_proc (ofType);
@@ -831,7 +843,9 @@ SPBasicAcquireSuite (char  *name,
                      long   version,
                      void **suite)
 {
-  PSPI_DEBUG (SPBASIC_SUITE, g_print (G_STRLOC ": %s %ld\n", name, version));
+  PSPI_DEBUG (SPBASIC_SUITE, g_print (G_STRLOC ":%s: %s %ld\n",
+				      __FUNCTION__,
+				      name, version));
   
   return errPlugInHostInsufficient;
 }
@@ -840,7 +854,9 @@ SPAPI SPErr
 SPBasicReleaseSuite (char *name,
                      long  version)
 {
-  PSPI_DEBUG (SPBASIC_SUITE, g_print (G_STRLOC ": %s %ld\n", name, version));
+  PSPI_DEBUG (SPBASIC_SUITE, g_print (G_STRLOC ":%s: %s %ld\n",
+				      __FUNCTION__,
+				      name, version));
 
   return 0;
 }
@@ -849,7 +865,9 @@ SPAPI SPBoolean
 SPBasicIsEqual (char *token1,
                 char *token2)
 {
-  PSPI_DEBUG (SPBASIC_SUITE, g_print (G_STRLOC ": %.4s %.4s\n", token1, token2));
+  PSPI_DEBUG (SPBASIC_SUITE, g_print (G_STRLOC ":%s: %.4s %.4s\n",
+				      __FUNCTION__,
+				      token1, token2));
 
   return 0;
 }
@@ -860,7 +878,9 @@ SPBasicAllocateBlock (long   size,
 {
   *block = g_malloc (size);
 
-  PSPI_DEBUG (SPBASIC_SUITE, g_print (G_STRLOC ": %ld: %p\n", size, *block));
+  PSPI_DEBUG (SPBASIC_SUITE, g_print (G_STRLOC ":%s: %ld: %p\n",
+				      __FUNCTION__,
+				      size, *block));
 
   return 0;
 }
@@ -868,7 +888,9 @@ SPBasicAllocateBlock (long   size,
 SPAPI SPErr
 SPBasicFreeBlock (void *block)
 {
-  PSPI_DEBUG (SPBASIC_SUITE, g_print (G_STRLOC ": %p\n", block));
+  PSPI_DEBUG (SPBASIC_SUITE, g_print (G_STRLOC ":%s: %p\n",
+				      __FUNCTION__,
+				      block));
 
   g_free (block);
 
@@ -882,7 +904,8 @@ SPBasicReallocateBlock (void  *block,
 {
   *newblock = g_realloc (block, newSize);
 
-  PSPI_DEBUG (SPBASIC_SUITE, g_print (G_STRLOC ": %p, %ld: %p\n",
+  PSPI_DEBUG (SPBASIC_SUITE, g_print (G_STRLOC ":%s: %p, %ld: %p\n",
+				      __FUNCTION__,
 				      block, newSize, *newblock));
 
   return 0;
@@ -913,7 +936,8 @@ static void
 host_proc (int16  selector,
            int32 *data)
 {
-  PSPI_DEBUG (MISC_CALLBACKS, g_print (G_STRLOC ": %d %p\n", selector, data));
+  PSPI_DEBUG (MISC_CALLBACKS, g_print (G_STRLOC ":%s: %d %p\n",
+				       __FUNCTION__, selector, data));
 }
 
 static void
@@ -947,7 +971,8 @@ display_pixels_proc (const PSPixelMap *source,
 #ifdef PSPI_WITH_DEBUGGING
   if (debug_mask & PSPI_DEBUG_MISC_CALLBACKS)
     {
-      g_print (G_STRLOC ": source->bounds:%ld:%ldx%ld:%ld\n",
+      g_print (G_STRLOC ":%s: source->bounds:%ld:%ldx%ld:%ld\n",
+	       __FUNCTION__,
 	       source->bounds.left, source->bounds.right,
 	       source->bounds.top, source->bounds.bottom);
       g_print ("  srcRect:%ld:%ldx%ld:%ld\n",
@@ -1044,6 +1069,8 @@ display_pixels_proc (const PSPixelMap *source,
   return noErr;
 }
 
+#if 0
+
 static ReadImageDocumentDesc *
 make_read_image_document_desc (void)
 {
@@ -1065,6 +1092,8 @@ make_read_image_document_desc (void)
   return NULL;
 }
   
+#endif
+
 static void
 create_buf (guchar      **buf,
             int32        *stride,
@@ -1079,7 +1108,8 @@ create_buf (guchar      **buf,
   *buf = g_malloc (nplanes * w * h);
   *stride = nplanes * w;
   PSPI_DEBUG (ADVANCE_STATE,
-	      g_print (G_STRLOC ": nplanes=%d w=%d h=%d stride=%ld buf=%p\n",
+	      g_print (G_STRLOC ":%s: nplanes=%d w=%d h=%d stride=%ld buf=%p\n",
+		       __FUNCTION__,
 		       nplanes, w, h, *stride, *buf));
 }
 
@@ -1099,7 +1129,8 @@ fill_buf (guchar      **buf,
   create_buf (buf, stride, rect, loplane, hiplane);
 
   PSPI_DEBUG (ADVANCE_STATE,
-	      g_print (G_STRLOC ": nplanes=%d loplane=%d hiplane=%d w=%d h=%d stride=%ld\n",
+	      g_print (G_STRLOC ":%s: nplanes=%d loplane=%d hiplane=%d w=%d h=%d stride=%ld\n",
+		       __FUNCTION__,
 		       nplanes, loplane, hiplane, w, h, *stride));
 
   if (rect->left < 0 ||
@@ -1262,12 +1293,12 @@ advance_state_proc (void)
 #ifdef PSPI_WITH_DEBUGGING
   if (debug_mask & PSPI_DEBUG_ADVANCE_STATE)
     {
-      g_print (G_STRLOC ": in: ");
+      g_print (G_STRLOC ":%s: in=", __FUNCTION__);
       PRINT_RECT (filter.inRect);
-      g_print (",%d:%d", filter.inLoPlane, filter.inHiPlane);
-      g_print ("\n  out: ");
+      g_print (",%d--%d", filter.inLoPlane, filter.inHiPlane);
+      g_print ("  out=");
       PRINT_RECT (filter.outRect);
-      g_print (",%d:%d", filter.outLoPlane, filter.outHiPlane);
+      g_print (",%d--%d", filter.outLoPlane, filter.outHiPlane);
       g_print ("\n  inData=%p outData=%p drawable->bpp=%d\n",
 	       filter.inData, filter.outData, drawable->bpp);
     }
@@ -1369,6 +1400,31 @@ install (PSPlugIn          *pspi,
   add_entry_to_plugin (pspi, pdb_name, menu_path, image_types, entrypoint);
 }
 
+static const char *
+resource_name (LPCTSTR resource)
+{
+  static char *bfr = NULL;
+
+  if (HIWORD (resource) == 0)
+    {
+      if (bfr == NULL)
+	bfr = g_strdup ("          ");
+      sprintf (bfr, "#%d", (int) resource);
+    }
+  else
+    {
+      if (bfr == NULL)
+	bfr = g_strdup (resource);
+      else
+	{
+	  if (strlen (bfr) < strlen (resource))
+	    bfr = g_realloc (bfr, strlen (resource));
+	  strcpy (bfr, resource);
+	}
+    }
+  return bfr;
+}
+
 static BOOL CALLBACK
 enum_names (HMODULE  dll,
             LPCTSTR  type,
@@ -1384,15 +1440,12 @@ enum_names (HMODULE  dll,
   char entrypoint[256] = "";
   gchar *menu_category = NULL, *menu_name = NULL, *image_types = NULL;
 
-  if (HIWORD (name) == 0)
-    PSPI_DEBUG (PIPL, g_print ("%s: name = %d\n", arg->file, (int) name));
-  else
-    PSPI_DEBUG (PIPL, g_print ("%s: name = %s\n", arg->file, name));
+  PSPI_DEBUG (PIPL, g_print ("%s: name=%s\n", arg->file, resource_name (name)));
 
   if ((pipl = FindResource (dll, name, type)) == NULL)
     {
       g_message (_("pspi: FindResource() failed for %s in %s"),
-		 name, arg->file);
+		 resource_name (name), arg->file);
       return TRUE;
     }
 
@@ -1462,7 +1515,7 @@ enum_names (HMODULE  dll,
           if (strlen (image_types) == 0)
             {
               PSPI_DEBUG (PIPL, g_print ("entry %s doesn't support any of GIMP's image modes\n",
-					 name));
+					 resource_name (name)));
               return TRUE;
             }
         }
@@ -1486,32 +1539,32 @@ enum_names (HMODULE  dll,
 
   if (entrypoint[0] == 0)
     {
-      g_message (_("pspi: No entrypoint for %s in %s"), name, arg->file);
+      g_message (_("pspi: No entrypoint for %s in %s"), resource_name (name), arg->file);
       return TRUE;
     }
 
   if (menu_category == NULL || menu_category[0] == '\0')
     {
-      g_message (_("pspi: No category specified for %s in %s"), name, arg->file);
+      g_message (_("pspi: No category specified for %s in %s"), resource_name (name), arg->file);
       return TRUE;
     }
 
   if (menu_name == NULL || menu_name[0] == '\0')
     {
-      g_message (_("pspi: No name specified for %s in %s"), name, arg->file);
+      g_message (_("pspi: No name specified for %s in %s"), resource_name (name), arg->file);
       return TRUE;
     }
 
   if (image_types == NULL)
     {
-      g_message (_("pspi: No image types specified for %s in %s"), name, arg->file);
-      return TRUE;
+      /* Assume RGB* */
+      image_types = g_strdup ("RGB*");
     }
 
   if (GetProcAddress (dll, entrypoint) == NULL)
     {
       g_message (_("pspi: GetProcAddress(%s,%s) failed: %s"),
-		 arg->file, entrypoint,
+		 arg->file, resource_name (entrypoint),
 		 g_win32_error_message (GetLastError ()));
       return TRUE;
     }
@@ -2016,9 +2069,11 @@ pspi_about (PSPlugInEntry *pspie)
       pspie = list->data;
       list = list->next;
       result = noErr;
-      PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorAbout\n"));
+      PSPI_DEBUG (CALL, g_print (G_STRLOC ":%s: calling filterSelectorAbout\n",
+				 __FUNCTION__));
       (*pspie->entry->ep) (filterSelectorAbout, &about, &data, &result);
-      PSPI_DEBUG (CALL, g_print (G_STRLOC ": after filterSelectorAbout: %d\n",
+      PSPI_DEBUG (CALL, g_print (G_STRLOC ":%s: after filterSelectorAbout: %d\n",
+				 __FUNCTION__,
 				 result));
       if (result != noErr)
 	{
@@ -2044,9 +2099,11 @@ pspi_params (PSPlugInEntry *pspie)
   setup_filter_record ();
 
   result = noErr;
-  PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorParameters\n"));
+  PSPI_DEBUG (CALL, g_print (G_STRLOC ":%s: calling filterSelectorParameters\n",
+			     __FUNCTION__));
   (*pspie->entry->ep) (filterSelectorParameters, &filter, &data, &result);
-  PSPI_DEBUG (CALL, g_print (G_STRLOC ": after filterSelectorParameters: %d\n",
+  PSPI_DEBUG (CALL, g_print (G_STRLOC ":%s: after filterSelectorParameters: %d\n",
+			     __FUNCTION__,
 			     result));
   if (result != noErr)
     {
@@ -2144,12 +2201,18 @@ pspi_prepare (PSPlugInEntry *pspie,
   filter.outColumnBytes = 0;
   filter.outPlaneBytes = 1;
 
-  filter.documentInfo = NULL /*make_read_image_document_desc ()*/;
+#if 0
+  filter.documentInfo = make_read_image_document_desc ();
+#else
+  filter.documentInfo = NULL;
+#endif
   
   result = noErr;
-  PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorPrepare\n"));
+  PSPI_DEBUG (CALL, g_print (G_STRLOC ":%s: calling filterSelectorPrepare\n",
+			     __FUNCTION__));
   (*pspie->entry->ep) (filterSelectorPrepare, &filter, &data, &result);
-  PSPI_DEBUG (CALL, g_print (G_STRLOC ": after filterSelectorPrepare: %d\n",
+  PSPI_DEBUG (CALL, g_print (G_STRLOC ":%s: after filterSelectorPrepare: %d\n",
+			     __FUNCTION__,
 			     result));
   if (result != noErr)
     {
@@ -2172,9 +2235,11 @@ pspi_apply (const PSPlugInEntry *pspie,
   g_assert (prev_phase == PREPARE);
 
   result = noErr;
-  PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorStart\n"));
+  PSPI_DEBUG (CALL, g_print (G_STRLOC ":%s: calling filterSelectorStart\n",
+			     __FUNCTION__));
   (*pspie->entry->ep) (filterSelectorStart, &filter, &data, &result);
-  PSPI_DEBUG (CALL, g_print (G_STRLOC ": after filterSelectorStart: %d\n",
+  PSPI_DEBUG (CALL, g_print (G_STRLOC ":%s: after filterSelectorStart: %d\n",
+			     __FUNCTION__,
 			     result));
   if (result != noErr)
     {
@@ -2188,9 +2253,11 @@ pspi_apply (const PSPlugInEntry *pspie,
     {
       advance_state_proc ();
       result = noErr;
-      PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorContinue\n"));
+      PSPI_DEBUG (CALL, g_print (G_STRLOC ":%s: calling filterSelectorContinue\n",
+				 __FUNCTION__));
       (*pspie->entry->ep) (filterSelectorContinue, &filter, &data, &result);
-      PSPI_DEBUG (CALL, g_print (G_STRLOC ": after filterSelectorContinue: %d\n",
+      PSPI_DEBUG (CALL, g_print (G_STRLOC ":%s: after filterSelectorContinue: %d\n",
+				 __FUNCTION__,
 				 result));
       
       if (result != noErr)
@@ -2198,9 +2265,11 @@ pspi_apply (const PSPlugInEntry *pspie,
 	  int16 saved_result = result;
 
 	  result = noErr;
-	  PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorFinish\n"));
+	  PSPI_DEBUG (CALL, g_print (G_STRLOC ":%s: calling filterSelectorFinish\n",
+				     __FUNCTION__));
 	  (*pspie->entry->ep) (filterSelectorFinish, &filter, &data, &result);
-	  PSPI_DEBUG (CALL, g_print (G_STRLOC ": after filterSelectorFinish: %d\n",
+	  PSPI_DEBUG (CALL, g_print (G_STRLOC ":%s: after filterSelectorFinish: %d\n",
+				     __FUNCTION__,
 				     result));
 	  FreeLibrary (pspie->entry->dll);
 	  return error_message (saved_result, "filterSelectorContinue");
@@ -2211,10 +2280,12 @@ pspi_apply (const PSPlugInEntry *pspie,
 #if 0
   /* Some plug-ins crash in filterSelectorFinish. Skip it altogether...? */
   result = noErr;
-  PSPI_DEBUG (CALL, g_print (G_STRLOC ": calling filterSelectorFinish\n"));
+  PSPI_DEBUG (CALL, g_print (G_STRLOC ":%s: calling filterSelectorFinish\n",
+			     __FUNCTION__));
   (*pspie->entry->ep) (filterSelectorFinish, &filter, &data, &result);
-  PSPI_DEBUG (CALL, g_print (G_STRLOC ": after filterSelectorFinish: %d\n",
-    		     result));
+  PSPI_DEBUG (CALL, g_print (G_STRLOC ":%s: after filterSelectorFinish: %d\n",
+			     __FUNCTION__,
+			     result));
   if (result != noErr)
     {
       FreeLibrary (pspie->entry->dll);

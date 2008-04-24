@@ -8,7 +8,7 @@ m4_define([plugin_name], [pspi])
 dnl These three define the plug-in version number
 m4_define([plugin_major_version], [1])
 m4_define([plugin_minor_version], [0])
-m4_define([plugin_micro_version], [5])
+m4_define([plugin_micro_version], [7])
 
 m4_define([plugin_version],
           [plugin_major_version.plugin_minor_version.plugin_micro_version])
@@ -88,7 +88,7 @@ AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE",
 				    [The gettext translation domain.])
 
 dnl Add the languages which your application supports here.
-ALL_LINGUAS="fi"
+ALL_LINGUAS="fi ru"
 
 AC_PROG_INTLTOOL
 AM_GLIB_GNU_GETTEXT

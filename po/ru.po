@@ -1,0 +1,207 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PSPI 1.0.5\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-11-01 05:25+0300\n"
+"PO-Revision-Date: 2007-11-01 05:26+0300\n"
+"Last-Translator: Alexandre Prokoudine <alexandre.prokoudine@gmail.com>\n"
+"Language-Team: GNOME Cyrillic <gnome-cyrillic@lists.gnome.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Russian\n"
+"X-Poedit-Country: RUSSIAN FEDERATION\n"
+
+#: ../src/interface.c:47
+msgid "Photoshop Plug-in Settings"
+msgstr "Расширения Photoshop"
+
+#: ../src/interface.c:60
+msgid "Directories with Photoshop Plug-ins"
+msgstr "Каталоги с расширениями Photoshop"
+
+#: ../src/interface.c:65
+msgid "Specify directories where to look for Photoshop plug-ins."
+msgstr "Укажите каталоги, в которых нужно искать расширения Photoshop."
+
+#: ../src/main.c:241
+#, c-format
+msgid "Invalid pspirc syntax"
+msgstr "Некорректный синтаксис pspirc"
+
+#: ../src/main.c:469
+msgid "<Toolbox>/Help/About Photoshop plug-ins/"
+msgstr "<Toolbox>/Help/О расширениях Photoshop/"
+
+#: ../src/main.c:472
+#, c-format
+msgid "About Photoshop plug-in %s"
+msgstr "О расширении Photoshop %s"
+
+#: ../src/main.c:632
+#, c-format
+msgid "Could not open %s for writing"
+msgstr "Не удалось открыть %s для записи"
+
+#: ../src/main.c:644 ../src/main.c:650 ../src/main.c:653
+#, c-format
+msgid "Could not rename %s to %s"
+msgstr "Не удалось переименовать %s в %s"
+
+#: ../src/main.c:675
+msgid "Set the search path for pspi"
+msgstr "Указать расположение расширений Photoshop"
+
+#: ../src/main.c:680
+msgid "<Toolbox>/Xtns/Photoshop Plug-in Settings..."
+msgstr "<Toolbox>/Xtns/Расширения Photoshop..."
+
+#: ../src/main.c:731
+msgid "The new search path will be used next time GIMP is started"
+msgstr "Новое расположение будет учтено при следующем запуске GIMP"
+
+#: ../src/main.c:814
+#, c-format
+msgid "Applying %s:"
+msgstr "Применяется %s:"
+
+#: ../src/pspi.c:1026
+#, c-format
+msgid "pspi: CreateDIBSection() failed: %s"
+msgstr "pspi: не удалось выполнить CreateDIBSection(): %s"
+
+#: ../src/pspi.c:1062
+#, c-format
+msgid "pspi: BitBlt() failed: %s"
+msgstr "pspi: не удалось выполнить BitBlt(): %s"
+
+#: ../src/pspi.c:1447
+#, c-format
+msgid "pspi: FindResource() failed for %s in %s"
+msgstr "pspi: не удалось выполнить FindResource() для %s in %s"
+
+#: ../src/pspi.c:1454
+#, c-format
+msgid "pspi: LoadResource() failed for %s: %s"
+msgstr "pspi: не удалось выполнить LoadResource() для %s: %s"
+
+#: ../src/pspi.c:1461
+#, c-format
+msgid "pspi: LockResource() failed for PiPL resource from %s: %s"
+msgstr "pspi: не удалось выполнить LockResource() для ресурса PiPL из %s: %s"
+
+#: ../src/pspi.c:1470
+#, c-format
+msgid "pspi: Wrong version of PiPL resource in %s: %ld, expected 0"
+msgstr "pspi: некорректная версия ресурса PiPL в %s: %ld, ожидался 0"
+
+#: ../src/pspi.c:1486
+#, c-format
+msgid "pspi: %s is not a Photoshop filter plug-in?"
+msgstr "pspi: %s не является расширениеме Photoshop?"
+
+#: ../src/pspi.c:1500
+#, c-format
+msgid ""
+"pspi: Photoshop plug-in %s requires interface version %d.%d, I only know %d.%"
+"d"
+msgstr ""
+"pspi: Расширение Photoshop '%s' требует интерфейса версии %d.%d, мне "
+"известно лишь о %d.%d"
+
+#: ../src/pspi.c:1542
+#, c-format
+msgid "pspi: No entrypoint for %s in %s"
+msgstr "pspi: нет точки входа для %s в %s"
+
+#: ../src/pspi.c:1548
+#, c-format
+msgid "pspi: No category specified for %s in %s"
+msgstr "pspi: для %s в %s не указано имя"
+
+#: ../src/pspi.c:1554
+#, c-format
+msgid "pspi: No name specified for %s in %s"
+msgstr "pspi: для %s в %s не указано имя"
+
+#: ../src/pspi.c:1566 ../src/pspi.c:1915
+#, c-format
+msgid "pspi: GetProcAddress(%s,%s) failed: %s"
+msgstr "pspi: не удалось выполнить GetProcAddress(%s,%s): %s"
+
+#: ../src/pspi.c:1591
+#, c-format
+msgid "pspi: LoadLibrary() failed for %s: %s"
+msgstr "pspi: не удалось выполнить LoadLibrary() для %s: %s"
+
+#: ../src/pspi.c:1607
+#, c-format
+msgid "pspi: EnumResourceNames(PIPL) failed for %s: %s"
+msgstr "pspi: не удалось выполнить EnumResourceNames(PIPL) для %s: %s"
+
+#: ../src/pspi.c:1842
+msgid "File read error"
+msgstr "Ошибка чтения файла"
+
+#: ../src/pspi.c:1845
+msgid "File write error"
+msgstr "Ошибка записи файла"
+
+#: ../src/pspi.c:1848
+msgid "File open error"
+msgstr "Ошибка открытия файла"
+
+#: ../src/pspi.c:1851
+msgid "Disk full"
+msgstr "Диск переполнен"
+
+#: ../src/pspi.c:1854
+msgid "File I/O error"
+msgstr "Ошибка ввода-вывода"
+
+#: ../src/pspi.c:1857
+msgid "Out of memory"
+msgstr "Кончилась память"
+
+#: ../src/pspi.c:1860
+msgid "Null handle error"
+msgstr "Ошибка обработки нуля"
+
+#: ../src/pspi.c:1863
+msgid "Bad parameters"
+msgstr "Некорректные параметры"
+
+#: ../src/pspi.c:1866
+msgid "Unsupported image mode"
+msgstr "Неподдерживаемый режим изображения"
+
+#: ../src/pspi.c:1869
+msgid "Requires services not provided by this GIMP plug-in"
+msgstr "Необходимы возможности, не предоставляемые этим расширением GIMP"
+
+#: ../src/pspi.c:1872
+msgid "A requested property could not be found"
+msgstr "Не удалось найти запрошенное свойство"
+
+#: ../src/pspi.c:1875
+msgid "This GIMP plug-in does not support colBytes other than 1"
+msgstr "Это расширение GIMP не поддерживает colBytes кроме 1"
+
+#: ../src/pspi.c:1878
+msgid "Invalid sample point"
+msgstr ""
+
+#: ../src/pspi.c:1881
+#, c-format
+msgid "error code %d"
+msgstr "Ошибка с кодом %d"
+
+#: ../src/pspi.c:1887
+#, c-format
+msgid "pspi: Problem invoking Photoshop plug-in: %s"
+msgstr "pspi: неполадка при вызове расширения Photoshop: %s"
+
+#: ../src/pspi.c:1904
+#, c-format
+msgid "pspi: LoadLibrary(%s) failed: %s"
+msgstr "pspi: не удалось выполнить LoadLibrary(%s): %s"

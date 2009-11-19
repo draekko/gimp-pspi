@@ -1,0 +1,22 @@
+<Project xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:foaf="http://xmlns.com/foaf/0.1/"
+         xmlns:gnome="http://api.gnome.org/doap-extensions#"
+         xmlns="http://usefulinc.com/ns/doap#">
+
+  <name xml:lang="en">gimp-pspi</name>
+  <shortdesc xml:lang="en">GIMP Photoshop plug-in interface</shortdesc>
+  <description xml:lang="en">PSPI is a GIMP plug-in that runs 3rd-party Photoshop
+	plug-in filters.
+  </description>
+  <homepage rdf:resource="http://www.iki.fi/tml/gimp/pspi.html" />
+  <category rdf:resource="http://api.gnome.org/doap-extensions#productivity" />
+
+  <maintainer>
+    <foaf:Person>
+      <foaf:name>Tor Lillqvist</foaf:name>
+      <foaf:mbox rdf:resource="mailto:tml@iki.fi" />
+      <gnome:userid>tml</gnome:userid>
+    </foaf:Person>
+  </maintainer>
+</Project>

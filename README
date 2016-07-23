@@ -15,17 +15,13 @@ https://www.adobe.com/devnet/photoshop/sdk/eula.html
 
 To build pspi on Linux, configure it like this:
 
-CC=wineg++ ./configure --with-pssdk=/path/to/pluginsdk
+CC=winegcc ./configure --with-pssdk=/path/to/pluginsdk
 
-Before compiling on Linux, you need to fix a few glitches in the PS6
-SDK headers:
+Before compiling on Linux, you need to fix a few glitches in the SDK
+headers. Copy the adobe patch to /path/to/pluginsdk and do :
 
--In photoshopapi/pica_sp/SPProps.h, change the #include of SPMdata.h
-to use the correct file name SPMData.h. (On Windows, this of course is
-not relevant as the file system is case-insensitive.)
+patch -p1 < adobe_plugins.diff
 
--In samplecode/common/include/PIUtilities.h, comment out the #include
-of PITypes.h, which is not needed.
 
 Debugging pspi
 ==============
@@ -102,3 +98,5 @@ pointer, and use it like that without calling the "lock" API which is
 the documented way to get the pointer from a Handle.
 
 Tor Lillqvist <tml@iki.fi>, December 2001, March 2006.
+Ben Touchette <draekko.software+gimp@gmail.com> July 2016.
+

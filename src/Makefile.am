@@ -11,9 +11,9 @@ EXTRA_DIST = \
 	piproxy.c
 
 PSSDK_CFLAGS = \
-	-I $(PSSDK)/PhotoshopAPI/Photoshop \
-	-I $(PSSDK)/PhotoshopAPI/Pica_sp \
-	-I $(PSSDK)/SampleCode/Common/Includes
+	-I$(PSSDK)/photoshopapi/photoshop \
+	-I$(PSSDK)/photoshopapi/pica_sp \
+	-I$(PSSDK)/samplecode/common/includes
 
 bin_PROGRAMS = pspi
 

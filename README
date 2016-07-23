@@ -15,7 +15,7 @@ https://www.adobe.com/devnet/photoshop/sdk/eula.html
 
 To build pspi on Linux, configure it like this:
 
-CC=winegcc ./configure --with-pssdk=/path/to/pluginsdk
+CC=wineg++ ./configure --with-pssdk=/path/to/pluginsdk
 
 Before compiling on Linux, you need to fix a few glitches in the PS6
 SDK headers:

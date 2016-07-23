@@ -7,7 +7,7 @@ You should have three files:
 	pspi.exe.so, the binary that wine runs
 
 Copy pspi and pspi.exe.so to your personal GIMP plug-ins folder,
-typically ~/.gimp-2.2/plug-ins . 
+typically ~/.config/GIMP/2.9/plug-ins . 
 
 When you run GIMP it will issue a warning "wire_read(): error" as
 pspi.exe.so isn't a GIMP plug-in. This warning is harmless (GIMP just

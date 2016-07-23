@@ -3,7 +3,7 @@
 /* pspi -- a GIMP plug-in to interface to Photoshop plug-ins.
  *
  * Copyright (C) 2001 Tor Lillqvist
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -12,10 +12,10 @@
  * copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -45,7 +45,6 @@
 #include <PIFilter.h>
 #include <PIUtilities.h>
 #include <PIProperties.h>
-#include <WinUtilities.h>
 
 #include <libgimp/gimp.h>
 
@@ -73,7 +72,7 @@ struct PIentrypoint_ {
                      void  *pluginParamBlock,
                      long  *pluginData,
                      int16 *result);
-};  
+};
 
 typedef struct {
   const gchar *file;
@@ -151,9 +150,9 @@ g_win32_error_message (gint error)
 
 	  if (nchars > 2 && msg[nchars-1] == '\n' && msg[nchars-2] == '\r')
 	    msg[nchars-2] = '\0';
-	  
+
 	  retval = g_utf16_to_utf8 (msg, -1, NULL, NULL, NULL);
-	  
+
 	  LocalFree (msg);
 	}
       else
@@ -175,9 +174,9 @@ g_win32_error_message (gint error)
 
 	  if (nbytes > 2 && msg[nbytes-1] == '\n' && msg[nbytes-2] == '\r')
 	    msg[nbytes-2] = '\0';
-	  
+
 	  retval = g_locale_to_utf8 (msg, -1, NULL, NULL, NULL);
-	  
+
 	  LocalFree (msg);
 	}
       else
@@ -195,7 +194,7 @@ int32_as_be_4c (int32 i)
   const char *cp = (const char *) &i;
   static char buf[5*10];
   static int bufindex = 0;
-  
+
   char *bufp = buf + bufindex;
 
   bufp[0] = cp[3];
@@ -207,7 +206,7 @@ int32_as_be_4c (int32 i)
   bufindex += 5;
   if (bufindex == sizeof(buf))
     bufindex = 0;
-  
+
   return bufp;
 }
 
@@ -274,7 +273,7 @@ buffer_free_proc (BufferID bufferID)
 
   g_free (bufferID);
 }
- 
+
 static int32
 buffer_space_proc (void)
 {
@@ -397,7 +396,7 @@ handle_get_size_proc (Handle h)
 	  return 0;
 	}
     }
-  
+
   PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p: %d\n",
 				     __FUNCTION__, h, ((PspiHandle *)h)->size));
   return ((PspiHandle *) h)->size;
@@ -472,7 +471,7 @@ handle_lock_proc (Handle  h,
 	    return NULL;		/* Burn, baby, burn */
 	}
     }
-  
+
   PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p: %p\n",
 				     __FUNCTION__, h, ((PspiHandle *)h)->pointer));
   return ((PspiHandle *) h)->pointer;
@@ -488,7 +487,7 @@ handle_unlock_proc (Handle h)
 	  PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p is HGLOBAL!\n", __FUNCTION__, h));
 	  GlobalUnlock ((HGLOBAL) h);
 	  return;
-	}	
+	}
       else if (!IsBadReadPtr (h, sizeof (HGLOBAL *)) &&
 	       GlobalSize (*(HGLOBAL *) h) > 0)
 	{
@@ -502,7 +501,7 @@ handle_unlock_proc (Handle h)
 	  return;
 	}
     }
- 
+
   PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p, %p\n",
 				     __FUNCTION__, h, ((PspiHandle *)h)->pointer));
 }
@@ -516,7 +515,7 @@ handle_recover_space_proc (int32 size)
 static void
 handle_dispose_regular_proc (Handle h)
 {
-  /* FIXME: What is this supposed to do? */ 
+  /* FIXME: What is this supposed to do? */
 
   if (!handle_valid (h))
     {
@@ -539,7 +538,7 @@ handle_dispose_regular_proc (Handle h)
 	  return;
 	}
     }
- 
+
   PSPI_DEBUG (HANDLE_SUITE, g_print (G_STRLOC ":%s: %p\n", __FUNCTION__, h));
 }
 
@@ -758,7 +757,7 @@ resource_get_proc (ResType ofType,
   memmove (p, parasite->data, parasite->size);
   handle_unlock_proc (result);
   gimp_parasite_free (parasite);
-  
+
   PSPI_DEBUG (RESOURCE_SUITE, g_print (G_STRLOC ":%s: %s, %d: %p\n",
 				       __FUNCTION__,
 				       int32_as_be_4c (ofType), index, result));
@@ -826,7 +825,7 @@ color_services_proc (ColorServicesInfo *info)
 {
 
   PSPI_DEBUG (COLOR_SERVICES_SUITE, PING ());
-  
+
   if (info->infoSize < sizeof (ColorServicesInfo))
     return errPlugInHostInsufficient;
 
@@ -844,21 +843,21 @@ color_services_proc (ColorServicesInfo *info)
   return errPlugInHostInsufficient;
 }
 
-SPAPI SPErr 
-SPBasicAcquireSuite (char  *name,
-                     long   version,
-                     void **suite)
+SPAPI SPErr
+SPBasicAcquireSuite (const char  *name,
+                     int32  version,
+                     const void **suite)
 {
   PSPI_DEBUG (SPBASIC_SUITE, g_print (G_STRLOC ":%s: %s %ld\n",
 				      __FUNCTION__,
 				      name, version));
-  
+
   return errPlugInHostInsufficient;
 }
 
 SPAPI SPErr
-SPBasicReleaseSuite (char *name,
-                     long  version)
+SPBasicReleaseSuite (const char *name,
+                     int32 version)
 {
   PSPI_DEBUG (SPBASIC_SUITE, g_print (G_STRLOC ":%s: %s %ld\n",
 				      __FUNCTION__,
@@ -868,8 +867,8 @@ SPBasicReleaseSuite (char *name,
 }
 
 SPAPI SPBoolean
-SPBasicIsEqual (char *token1,
-                char *token2)
+SPBasicIsEqual (const char *token1,
+                const char *token2)
 {
   PSPI_DEBUG (SPBASIC_SUITE, g_print (G_STRLOC ":%s: %.4s %.4s\n",
 				      __FUNCTION__,
@@ -879,7 +878,7 @@ SPBasicIsEqual (char *token1,
 }
 
 SPAPI SPErr
-SPBasicAllocateBlock (long   size,
+SPBasicAllocateBlock (size_t size,
                       void **block )
 {
   *block = g_malloc (size);
@@ -905,7 +904,7 @@ SPBasicFreeBlock (void *block)
 
 SPAPI SPErr
 SPBasicReallocateBlock (void  *block,
-                        long   newSize,
+                        size_t newSize,
                         void **newblock)
 {
   *newblock = g_realloc (block, newSize);
@@ -916,7 +915,7 @@ SPBasicReallocateBlock (void  *block,
 
   return 0;
 }
-     
+
 SPAPI SPErr
 SPBasicUndefined (void)
 {
@@ -951,7 +950,7 @@ process_event_proc (void *event)
 {
 }
 
-static OSErr 
+static OSErr
 display_pixels_proc (const PSPixelMap *source,
                      const VRect      *srcRect,
                      int32             dstRow,
@@ -967,7 +966,7 @@ display_pixels_proc (const PSPixelMap *source,
       DWORD bmiMasks[3];
       RGBQUAD bmiColors[256];
     } u;
-  } bmi;    
+  } bmi;
   guchar *bits;
   int i, x, y, bpp = 0;
   guchar *p, *q;
@@ -1058,7 +1057,7 @@ display_pixels_proc (const PSPixelMap *source,
 	    q += source->colBytes;
 	  }
       }
-  
+
   hmemdc = CreateCompatibleDC (hdc);
   holdbm = SelectObject (hmemdc, hbitmap);
 
@@ -1081,7 +1080,7 @@ static ReadImageDocumentDesc *
 make_read_image_document_desc (void)
 {
   ReadImageDocumentDesc *p = g_new (ReadImageDocumentDesc, 1);
-  
+
   p->minVersion = 0;
   p->maxVersion = 1;
   p->imageMode = filter.imageMode;
@@ -1097,7 +1096,7 @@ make_read_image_document_desc (void)
   /* XXX */
   return NULL;
 }
-  
+
 #endif
 
 static void
@@ -1229,7 +1228,7 @@ store_buf (guchar       *buf,
       int i;
       g_print ("  buf=%p nplanes=%d loplane=%d hiplane=%d w=%d h=%d stride=%ld\n",
 	       buf, nplanes, loplane, hiplane, w, h, stride);
-  
+
       for (i = 0; i < 8; i++)
 	{
 	  int j;
@@ -1295,7 +1294,7 @@ advance_state_proc (void)
   static GimpPixelRgn src, dst;
   static Rect outRect;
   static gint outRowBytes, outLoPlane, outHiPlane;
-  
+
 #ifdef PSPI_WITH_DEBUGGING
   if (debug_mask & PSPI_DEBUG_ADVANCE_STATE)
     {
@@ -1393,7 +1392,7 @@ install (PSPlugIn          *pspi,
          gchar             *name,
          gchar             *image_types,
          gchar             *entrypoint)
-{ 
+{
   gchar *pdb_name;
   gchar *menu_path;
 
@@ -1588,7 +1587,7 @@ query_8bf (const gchar       *file,
            const struct stat *statp)
 {
   HINSTANCE dll;
-  EnumArg *arg; 
+  EnumArg *arg;
 
   PSPI_DEBUG (PSPIRC, g_print ("Trying %s\n", file));
 
@@ -1744,7 +1743,7 @@ setup_filter_record (void)
   filter.supportsAlternateLayouts = FALSE;
   filter.wantLayout = 0;
   filter.filterCase = 0;
-  filter.dummyPlaneValue = -1;  
+  filter.dummyPlaneValue = -1;
   /* premiereHook */
   filter.advanceState = advance_state_proc;
   filter.supportsAbsolute = TRUE;
@@ -1770,7 +1769,7 @@ setup_filter_record (void)
   filter.absTileHeight = filter.inTileHeight;
   filter.absTileWidth = filter.inTileWidth;
   filter.absTileOrigin.h = 0;
-  filter.absTileOrigin.v = 0;   
+  filter.absTileOrigin.v = 0;
   filter.outTileHeight = filter.inTileHeight;
   filter.outTileWidth = filter.inTileWidth;
   filter.outTileOrigin.h = 0;
@@ -1841,7 +1840,7 @@ error_message (int16  result,
         {
           gchar *s;
           gchar num[20];
-          
+
           switch (result)
             {
             case readErr:
@@ -1902,7 +1901,7 @@ load_dll (PSPlugInEntry *pspie)
   if (pspie->entry != NULL)
     return GIMP_PDB_SUCCESS;
 
-  /* We are invoked with "re-run last filter" */ 
+  /* We are invoked with "re-run last filter" */
   pspie->entry = g_new (PIentrypoint, 1);
 
   if ((pspie->entry->dll = LoadLibrary (pspie->pspi->location)) == NULL)
@@ -1912,7 +1911,7 @@ load_dll (PSPlugInEntry *pspie)
 		 g_win32_error_message (GetLastError ()));
       return GIMP_PDB_EXECUTION_ERROR;
     }
-  
+
   pspie->entry->ep = (int (CALLBACK *)(short, void *, long *, int16*))
      GetProcAddress (pspie->entry->dll, pspie->entrypoint_name);
 
@@ -2029,7 +2028,7 @@ restore_stuff (const PSPlugInEntry *pspie)
     }
   else
     filter.parameters = NULL;
-  
+
   g_free (token);
   g_free (token2);
   g_free (token3);
@@ -2064,7 +2063,7 @@ pspi_about (PSPlugInEntry *pspie)
   about.sSPBasic = NULL /* basic_suite */;
   about.plugInRef = NULL;
   memset (about.reserved, 0, sizeof (about.reserved));
-  
+
   /* A module might have several plug-in entry points. Call the About
    * box selector for each of them. Only one of them should display
    * the about box. Says the Photoshop API docs.
@@ -2135,7 +2134,7 @@ pspi_prepare (PSPlugInEntry *pspie,
   /* Set globals, yecch */
   drawable = dr;
   image_id = gimp_drawable_get_image (drawable->drawable_id);
- 
+
   image_type = gimp_drawable_type (drawable->drawable_id);
 
   if ((status = load_dll (pspie)) != GIMP_PDB_SUCCESS)
@@ -2212,7 +2211,7 @@ pspi_prepare (PSPlugInEntry *pspie,
 #else
   filter.documentInfo = NULL;
 #endif
-  
+
   result = noErr;
   PSPI_DEBUG (CALL, g_print (G_STRLOC ":%s: calling filterSelectorPrepare\n",
 			     __FUNCTION__));
@@ -2265,9 +2264,9 @@ pspi_apply (const PSPlugInEntry *pspie,
       PSPI_DEBUG (CALL, g_print (G_STRLOC ":%s: after filterSelectorContinue: %d\n",
 				 __FUNCTION__,
 				 result));
-      
+
       if (result != noErr)
-	{       
+	{
 	  int16 saved_result = result;
 
 	  result = noErr;

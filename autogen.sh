@@ -171,3 +171,5 @@ else
   echo "Configure failed or did not finish!"
   exit 1
 fi
+
+rm a.out.so

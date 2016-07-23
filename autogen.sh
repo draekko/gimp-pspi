@@ -12,10 +12,10 @@ PROJECT="GIMP plug-in to interface to Photoshop plug-ins"
 TEST_TYPE=-f
 FILE=src/main.c
 
-AUTOCONF_REQUIRED_VERSION=2.54
-AUTOMAKE_REQUIRED_VERSION=1.6
-GLIB_REQUIRED_VERSION=2.0.0
-INTLTOOL_REQUIRED_VERSION=0.17
+AUTOCONF_REQUIRED_VERSION=2.69
+AUTOMAKE_REQUIRED_VERSION=1.15
+GLIB_REQUIRED_VERSION=2.48.1
+INTLTOOL_REQUIRED_VERSION=0.51.0
 
 srcdir=`dirname $0`
 test -z "$srcdir" && srcdir=.
@@ -33,7 +33,7 @@ check_version ()
 }
 
 echo
-echo "I am testing that you have the required versions of autoconf," 
+echo "I am testing that you have the required versions of autoconf,"
 echo "automake, glib-gettextize and intltoolize..."
 echo
 
@@ -105,7 +105,7 @@ fi
 if test "$DIE" -eq 1; then
     echo
     echo "Please install/upgrade the missing tools and call me again."
-    echo	
+    echo
     exit 1
 fi
 
@@ -171,4 +171,3 @@ else
   echo "Configure failed or did not finish!"
   exit 1
 fi
-

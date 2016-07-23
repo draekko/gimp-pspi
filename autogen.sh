@@ -59,12 +59,12 @@ if (automake-1.7 --version) < /dev/null > /dev/null 2>&1; then
 elif (automake-1.8 --version) < /dev/null > /dev/null 2>&1; then
    AUTOMAKE=automake-1.8
    ACLOCAL=aclocal-1.8
-elif (automake-1.6 --version) < /dev/null > /dev/null 2>&1; then
-   AUTOMAKE=automake-1.6
-   ACLOCAL=aclocal-1.6
+elif (automake-1.15 --version) < /dev/null > /dev/null 2>&1; then
+   AUTOMAKE=automake-1.15
+   ACLOCAL=aclocal-1.15
 else
     echo
-    echo "  You must have automake 1.6 or newer installed to compile $PROJECT."
+    echo "  You must have automake 1.15 or newer installed to compile $PROJECT."
     echo "  Download the appropriate package for your distribution,"
     echo "  or get the source tarball at ftp://ftp.gnu.org/pub/gnu/automake/"
     DIE=1

@@ -92,7 +92,7 @@ bin_PROGRAMS = pspi$(EXEEXT)
 noinst_PROGRAMS = dump-resources$(EXEEXT) copy-resources$(EXEEXT)
 subdir = src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.in
+am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
@@ -330,17 +330,11 @@ pspi_SOURCES = \
 	plugin-intl.h
 
 pspi_LDFLAGS = $(mwindows)
-INCLUDES = \
-	-DPSPI_WITH_DEBUGGING \
-	@GIMP_CFLAGS@	\
-	$(PSSDK_CFLAGS)
-
+AM_CPPFLAGS = -DPSPI_WITH_DEBUGGING @GIMP_CFLAGS@ $(PSSDK_CFLAGS) \
+	-DLOCALEDIR=\""$(LOCALEDIR)"\"
 LDADD = \
 	$(GIMP_LIBS)	\
 	-ladvapi32 -lgdi32
-
-AM_CPPFLAGS = \
-	-DLOCALEDIR=\""$(LOCALEDIR)"\"
 
 all: all-am
 

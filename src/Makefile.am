@@ -30,7 +30,7 @@ pspi_SOURCES = \
 
 pspi_LDFLAGS = $(mwindows)
 
-INCLUDES = \
+AM_CPPFLAGS = \
 	-DPSPI_WITH_DEBUGGING \
 	@GIMP_CFLAGS@	\
 	$(PSSDK_CFLAGS)
@@ -39,7 +39,7 @@ LDADD = \
 	$(GIMP_LIBS)	\
 	-ladvapi32 -lgdi32
 
-AM_CPPFLAGS = \
+AM_CPPFLAGS += \
 	-DLOCALEDIR=\""$(LOCALEDIR)"\"
 
 piproxy.8bf : piproxy.c proxies.c

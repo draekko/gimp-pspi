@@ -8,27 +8,24 @@ Windows executables, more specifically, DLLs. (Photoshop plug-ins are
 actually DLLs.) Pspi was developed on (i386) Windows. It is also
 possible to build and use it on i386 Linux, using Wine.
 
-To build pspi, you will need the headers from the Adobe Photoshop 6
-SDK. It used to freely available from Adobe, but unfortunately isn't
-any longer. If you can find an old copy of Photoshop 6, the SDK is
-included on the CD.
+To build pspi, you will need the headers from the Adobe Photoshop CC
+2015.5 SDK which is available at 
+
+https://www.adobe.com/devnet/photoshop/sdk/eula.html
 
 To build pspi on Linux, configure it like this:
 
-CC=winegcc ./configure --with-pssdk=/path/to/pssdk6
+CC=winegcc ./configure --with-pssdk=/path/to/pluginsdk
 
 Before compiling on Linux, you need to fix a few glitches in the PS6
 SDK headers:
 
--In PhotoshopAPI/Pica_sp/SPProps.h, change the #include of SPMdata.h
+-In photoshopapi/pica_sp/SPProps.h, change the #include of SPMdata.h
 to use the correct file name SPMData.h. (On Windows, this of course is
 not relevant as the file system is case-insensitive.)
 
--In SampleCode/Common/Include/PIUtilities.h, comment out the #include
-of Types.h, whatever that is, which is not needed.
-
--In SampleCode/Common/Include/WinUtilities, comment put the extern "C"
-begin and end braces inside #ifdef __cplusplus..#endif .
+-In samplecode/common/include/PIUtilities.h, comment out the #include
+of PITypes.h, which is not needed.
 
 Debugging pspi
 ==============

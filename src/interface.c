@@ -1,6 +1,7 @@
 /* pspi -- a GIMP plug-in to interface to Photoshop plug-ins.
  *
  * Copyright (C) 2001 Tor Lillqvist
+ * Copyright (C) 2016 Ben Touchette
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -65,6 +66,8 @@ pspi_settings_dialog (gchar **search_path)
 
 	path_editor = gimp_path_editor_new (_("Directories with Photoshop Plug-ins"), *search_path);
 	gtk_container_set_border_width (GTK_CONTAINER (path_editor), 6);
+  gtk_widget_set_size_request (GTK_CONTAINER (path_editor),
+                                  520, 340);
 	gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dlg)->vbox),
 	                    path_editor, TRUE, TRUE, 0);
 

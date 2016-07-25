@@ -40,6 +40,7 @@ typedef struct
 typedef struct
 {
 	PSPlugIn *pspi;
+	gchar *name;
 	gchar *pdb_name;
 	gchar *menu_path;
 	gchar *image_types;
@@ -82,7 +83,8 @@ extern gint debug_mask;
 extern GimpParamDef standard_args[];
 extern gint standard_nargs;
 
-void   install_pdb         (gchar       *pdb_name,
+void   install_pdb         (gchar       *plugin_name,
+                            gchar       *pdb_name,
                             const gchar *file,
                             gchar       *menu_path,
                             gchar       *image_types);
@@ -93,6 +95,7 @@ gchar *make_pdb_name       (const gchar *file,
 void   add_found_plugin    (PSPlugIn    *pspi);
 
 void   add_entry_to_plugin (PSPlugIn    *pspi,
+                            gchar       *name,
                             gchar       *pdb_name,
                             gchar       *menu_path,
                             gchar       *image_types,

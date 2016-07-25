@@ -2,6 +2,7 @@
 /* pspi -- a GIMP plug-in to interface to Photoshop plug-ins.
  *
  * Copyright (C) 2001 Tor Lillqvist
+ * Copyright (C) 2016 Ben Touchette
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -58,7 +59,8 @@
 
 #define PSPI_PATH_TOKEN "pspi-path"
 #define PSPIRC "pspirc"
-#define DEBUGGER_SLEEP_TIME 20000000
+// Originally 20000000
+#define DEBUGGER_SLEEP_TIME 5000000
 
 #define PSPI_SETTINGS_NAME "pspi_settings"
 
@@ -169,6 +171,7 @@ add_found_plugin (PSPlugIn *pspi)
 
 void
 add_entry_to_plugin (PSPlugIn *pspi,
+                     gchar    *name,
                      gchar    *pdb_name,
                      gchar    *menu_path,
                      gchar    *image_types,
@@ -179,6 +182,7 @@ add_entry_to_plugin (PSPlugIn *pspi,
 	pspie = g_new (PSPlugInEntry, 1);
 
 	pspie->pspi = pspi;
+	pspie->name = g_strdup (name);
 	pspie->pdb_name = g_strdup (pdb_name);
 	pspie->menu_path = g_strdup (menu_path);
 	pspie->image_types = g_strdup (image_types);
@@ -223,8 +227,8 @@ save_pspirc_entry (gpointer key,
 			pspie = list->data;
 			list = list->next;
 
-			fprintf (pspirc, "    <entrypoint menu-path=\"%s\" image-types=\"%s\" entrypoint=\"%s\"/>\n",
-			         pspie->menu_path, pspie->image_types, pspie->entrypoint_name);
+			fprintf (pspirc, "    <entrypoint name=\"%s\" menu-path=\"%s\" image-types=\"%s\" entrypoint=\"%s\"/>\n",
+			         pspie->name, pspie->menu_path, pspie->image_types, pspie->entrypoint_name);
 		}
 
 	fprintf (pspirc, "  </ps-plug-in>\n");
@@ -286,11 +290,16 @@ start_element_handler (GMarkupParseContext *context,
 	else if (strcmp (element_name, "entrypoint") == 0 &&
 	         depth == 2)
 		{
-			gchar *menu_path = NULL, *image_types = NULL, *entrypoint = NULL;
+			gchar *name = NULL, *menu_path = NULL, *image_types = NULL, *entrypoint = NULL;
 
 			i = 0;
 			while (attribute_names[i] != NULL)
 				{
+					if (strcmp (attribute_names[i], "name") == 0)
+						if (name != NULL)
+							set_error (context, error);
+						else
+							name = g_strdup (attribute_values[i]);
 					if (strcmp (attribute_names[i], "menu-path") == 0)
 						if (menu_path != NULL)
 							set_error (context, error);
@@ -316,7 +325,7 @@ start_element_handler (GMarkupParseContext *context,
 			else
 				{
 					gchar *pdb_name = make_pdb_name (ud->pspi->location, entrypoint);
-					add_entry_to_plugin (ud->pspi, pdb_name, menu_path,
+					add_entry_to_plugin (ud->pspi, name, pdb_name, menu_path,
 					                     image_types, entrypoint);
 				}
 		}
@@ -448,16 +457,17 @@ my_ftw (const gchar *path,
 }
 
 void
-install_pdb (gchar       *pdb_name,
+install_pdb (gchar       *plugin_name,
+             gchar       *pdb_name,
              const gchar *file,
-             gchar        *menu_path,
+             gchar       *menu_path,
              gchar       *image_types)
 {
 	gchar *blurb, *menu_path2, *pdb_name2;
 
-	blurb = g_strdup_printf ("Photoshop plug-in %s", file);
+	blurb = g_strdup_printf ("Photoshop plug-in %s\n\nFile %s", plugin_name, file);
 
-	PSPI_DEBUG (PSPIRC, g_print ("Installing %s on %s\n", pdb_name, menu_path));
+	PSPI_DEBUG (PSPIRC, g_print ("Installing %s (%s) on %s\n", plugin_name, pdb_name, menu_path));
 
 	gimp_install_procedure (pdb_name,
 	                        blurb,
@@ -528,7 +538,8 @@ scan_filter (const gchar       *file,
 
 							list = list->next;
 							pdb_name = make_pdb_name (file, pspie->entrypoint_name);
-							install_pdb (pdb_name, file, pspie->menu_path, pspie->image_types);
+              g_printf("installing %s", pspie->name);
+							install_pdb (pspie->name, pdb_name, file, pspie->menu_path, pspie->image_types);
 							g_free (pdb_name);
 						}
 					pspi->present = TRUE;
@@ -682,9 +693,9 @@ query (void)
 	gimp_install_procedure (PSPI_SETTINGS_NAME,
 	                        N_("Set the search path for pspi"),
 	                        "Set the directory trees where the pspi plug-in searches for Photoshop filter plug-ins",
-	                        "Tor Lillqvist <tml@iki.fi>",
-	                        "Tor Lillqvist <tml@iki.fi>",
-	                        "2001",
+	                        "Tor Lillqvist <tml@iki.fi>;Ben Touchette <draekko.software+gimp@gmail.com>",
+	                        "Tor Lillqvist <tml@iki.fi>;Ben Touchette <draekko.software+gimp@gmail.com>",
+	                        "2001;2016",
 	                        N_("<Toolbox>/Xtns/Photoshop Plug-in Settings..."),
 	                        "",
 	                        GIMP_PLUGIN,

@@ -3,6 +3,7 @@
 /* pspi -- a GIMP plug-in to interface to Photoshop plug-ins.
  *
  * Copyright (C) 2001 Tor Lillqvist
+ * Copyright (C) 2016 Ben Touchette
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -1451,9 +1452,9 @@ install (PSPlugIn          *pspi,
 
 	menu_path = g_strdup_printf (FILTER_MENU_PREFIX "%s/%s", category, name);
 
-	install_pdb (pdb_name, file, menu_path, image_types);
+	install_pdb (name, pdb_name, file, menu_path, image_types);
 
-	add_entry_to_plugin (pspi, pdb_name, menu_path, image_types, entrypoint);
+	add_entry_to_plugin (pspi, name, pdb_name, menu_path, image_types, entrypoint);
 }
 
 static const char *
@@ -1612,11 +1613,18 @@ enum_names (HMODULE  dll,
 			return TRUE;
 		}
 
+  gchar* menu_name2;
 	if (menu_name == NULL || menu_name[0] == '\0')
 		{
 			g_message (_("pspi: No name specified for %s in %s"), resource_name (name), arg->file);
 			return TRUE;
 		}
+  else
+    {
+      menu_name2 = strdup(menu_name);
+	    if (strcmp (menu_name2 + strlen (menu_name2) - 3, "...") == 0)
+		    menu_name2[strlen (menu_name2) - 3] = '\0';
+    }
 
 	if (image_types == NULL)
 		{
@@ -1636,7 +1644,7 @@ enum_names (HMODULE  dll,
 	                           menu_name, image_types, entrypoint));
 
 	install (arg->pspi, arg->file, arg->statp,
-	         menu_category, menu_name, image_types, entrypoint);
+	         menu_category, menu_name2, image_types, entrypoint);
 
 	return TRUE;
 }

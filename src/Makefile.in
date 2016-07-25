@@ -188,6 +188,9 @@ CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
+CXX = @CXX@
+CXXDEPMODE = @CXXDEPMODE@
+CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DATADIR = @DATADIR@
 DATADIRNAME = @DATADIRNAME@
@@ -262,6 +265,7 @@ abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 ac_ct_CC = @ac_ct_CC@
+ac_ct_CXX = @ac_ct_CXX@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
@@ -325,13 +329,13 @@ pspi_SOURCES = \
 	interface.h	\
 	main.c		\
 	main.h		\
-	pspi.c		\
+	pspi.c	\
 	pspi.h		\
 	plugin-intl.h
 
 pspi_LDFLAGS = $(mwindows)
 AM_CPPFLAGS = -DPSPI_WITH_DEBUGGING @GIMP_CFLAGS@ $(PSSDK_CFLAGS) \
-	-DLOCALEDIR=\""$(LOCALEDIR)"\"
+	-fPIC -DLOCALEDIR=\""$(LOCALEDIR)"\"
 LDADD = \
 	$(GIMP_LIBS)	\
 	-ladvapi32 -lgdi32
@@ -662,14 +666,8 @@ uninstall-am: uninstall-binPROGRAMS
 .PRECIOUS: Makefile
 
 
-piproxy.8bf : piproxy.c proxies.c
-	$(CC) -shared -DENTRYPOINT=$(ENTRYPOINT) $(GLIB_CFLAGS) $(PSSDK_CFLAGS) -o $@ piproxy.c $(GLIB_LIBS)
-
-proxies.c : genproxies.m4
-	m4 genproxies.m4 >$@
-
 install-exec-hook:
-@OS_WIN32_FALSE@	$(INSTALL) pspi.exe.so $(bindir)	
+@OS_WIN32_FALSE@	$(INSTALL) pspi.exe.so $(bindir)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

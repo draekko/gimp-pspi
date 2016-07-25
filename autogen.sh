@@ -8,7 +8,8 @@
 # tools and you shouldn't use this script.  Just call ./configure
 # directly.
 
-PROJECT="GIMP plug-in to interface to Photoshop plug-ins"
+PROJECT="gimp-pspi"
+#PROJECT="GIMP plug-in to interface to Photoshop plug-ins"
 TEST_TYPE=-f
 FILE=src/main.c
 
@@ -53,13 +54,7 @@ else
 fi
 
 echo -n "checking for automake >= $AUTOMAKE_REQUIRED_VERSION ... "
-if (automake-1.7 --version) < /dev/null > /dev/null 2>&1; then
-   AUTOMAKE=automake-1.7
-   ACLOCAL=aclocal-1.7
-elif (automake-1.8 --version) < /dev/null > /dev/null 2>&1; then
-   AUTOMAKE=automake-1.8
-   ACLOCAL=aclocal-1.8
-elif (automake-1.15 --version) < /dev/null > /dev/null 2>&1; then
+if (automake-1.15 --version) < /dev/null > /dev/null 2>&1; then
    AUTOMAKE=automake-1.15
    ACLOCAL=aclocal-1.15
 else
@@ -163,7 +158,7 @@ intltoolize --copy --force --automake || exit 1
 
 cd $ORIGDIR
 
-if $srcdir/configure --enable-maintainer-mode --enable-gtk-doc "$@"; then
+if $srcdir/configure --enable-maintainer-mode "$@"; then
   echo
   echo "Now type 'make' to compile $PROJECT."
 else

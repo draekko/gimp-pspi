@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.54)
+AC_PREREQ(2.69)
 
 dnl Name your plug-in here
 m4_define([plugin_name], [pspi])
@@ -50,7 +50,7 @@ AC_ISC_POSIX
 AC_PROG_CC
 AM_PROG_CC_STDC
 AC_HEADER_STDC
-
+AC_PROG_CXX
 
 ACLOCAL="$ACLOCAL $ACLOCAL_FLAGS"
 
@@ -102,15 +102,15 @@ AC_SUBST(LOCALEDIR)
 AC_SUBST(DATADIR)
 
 
-AC_MSG_CHECKING([if GTK+ is version 2.3.0 or newer])
-if $PKG_CONFIG --atleast-version=2.3.0 gtk+-2.0; then
-  have_gtk_2_3=yes
+AC_MSG_CHECKING([if GTK+ is version 2.4.20 or newer])
+if $PKG_CONFIG --atleast-version=2.4.20 gtk+-2.0; then
+  have_gtk_2_4=yes
 else
-  have_gtk_2_3=no
+  have_gtk_2_4=no
 fi
-AC_MSG_RESULT($have_gtk_2_3)
+AC_MSG_RESULT($have_gtk_2_4)
 
-if test "x$have_gtk_2_3" != "xyes"; then
+if test "x$have_gtk_2_4" != "xyes"; then
   CPPFLAGS="$CPPFLAGS -DG_DISABLE_DEPRECATED -DGDK_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED"
 fi
 

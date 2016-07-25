@@ -13,14 +13,16 @@ To build pspi, you will need the headers from the Adobe Photoshop CC
 
 https://www.adobe.com/devnet/photoshop/sdk/eula.html
 
-To build pspi on Linux, configure it like this:
+To build pspi on Linux, from a terminal configure it like this:
 
-CC=winegcc ./configure --with-pssdk=/path/to/pluginsdk
+export CC=winegcc
+export CXX=wineg++
+./configure --with-pssdk=/path/to/pluginsdk
 
 Before compiling on Linux, you need to fix a few glitches in the SDK
 headers. Copy the adobe patch to /path/to/pluginsdk and do :
 
-patch -p1 < adobe_plugins.diff
+patch -p0 < adobe_photoshop_cc_sdk.diff
 
 
 Debugging pspi
@@ -34,7 +36,7 @@ set PSPI_DEBUG=resource_suite:debugger
 
 (or in a Linux shell):
 
-export PSPI_DEBUG=pipl
+export PSPI_DEBUG=ALL
 
 See the source code for other possible values. Obviously, this
 environment variable must be set before starting the GIMP (which

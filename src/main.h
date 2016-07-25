@@ -1,7 +1,7 @@
 /* pspi -- a GIMP plug-in to interface to Photoshop plug-ins.
  *
  * Copyright (C) 2001 Tor Lillqvist
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -10,10 +10,10 @@
  * copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -29,20 +29,22 @@
 
 typedef struct PIentrypoint_ PIentrypoint;
 
-typedef struct {
-  guint timestamp;
-  gchar *location;
-  gboolean present;
-  GList *entries;
+typedef struct
+{
+	guint timestamp;
+	gchar *location;
+	gboolean present;
+	GList *entries;
 } PSPlugIn;
 
-typedef struct {
-  PSPlugIn *pspi;
-  gchar *pdb_name;
-  gchar *menu_path;
-  gchar *image_types;
-  gchar *entrypoint_name;
-  PIentrypoint *entry;
+typedef struct
+{
+	PSPlugIn *pspi;
+	gchar *pdb_name;
+	gchar *menu_path;
+	gchar *image_types;
+	gchar *entrypoint_name;
+	PIentrypoint *entry;
 } PSPlugInEntry;
 
 extern gint debug_mask;
@@ -66,34 +68,34 @@ extern gint debug_mask;
 #define PSPI_DEBUG_VERBOSE		(PSPI_DEBUG_ALL & ~PSPI_DEBUG_DEBUGGER)
 
 #ifdef PSPI_WITH_DEBUGGING
-  #define PSPI_DEBUG(bit, stmt)				\
+#define PSPI_DEBUG(bit, stmt)				\
     G_STMT_START { 					\
       if (debug_mask & PSPI_DEBUG_##bit)		\
 	stmt;						\
     } G_STMT_END
 #else
- #define PSPI_DEBUG(bit, stmt)
+#define PSPI_DEBUG(bit, stmt)
 #endif
 
-#define FILTER_MENU_PREFIX "<Image>/Filters/"
+#define FILTER_MENU_PREFIX "<Image>/Filters/Photoshop Plug-ins/"
 
 extern GimpParamDef standard_args[];
 extern gint standard_nargs;
 
 void   install_pdb         (gchar       *pdb_name,
-			    const gchar *file,
-			    gchar       *menu_path,
-			    gchar       *image_types);
+                            const gchar *file,
+                            gchar       *menu_path,
+                            gchar       *image_types);
 
 gchar *make_pdb_name       (const gchar *file,
-			    const gchar *entrypoint);
+                            const gchar *entrypoint);
 
 void   add_found_plugin    (PSPlugIn    *pspi);
 
 void   add_entry_to_plugin (PSPlugIn    *pspi,
-			    gchar       *pdb_name,
-			    gchar       *menu_path,
-			    gchar       *image_types,
-			    gchar       *entrypoint);
+                            gchar       *pdb_name,
+                            gchar       *menu_path,
+                            gchar       *image_types,
+                            gchar       *entrypoint);
 
 #endif /* __MAIN_H__ */

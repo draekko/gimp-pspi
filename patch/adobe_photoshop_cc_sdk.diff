@@ -1,0 +1,24 @@
+diff -ur 1/photoshopapi/photoshop/PITypes.h 2/photoshopapi/photoshop/PITypes.h
+--- 1/photoshopapi/photoshop/PITypes.h	2016-06-06 10:45:38.000000000 -0400
++++ 2/photoshopapi/photoshop/PITypes.h	2016-07-23 14:13:39.671722581 -0400
+@@ -36,7 +36,7 @@
+ #if !defined(_WIN32_WINNT)
+ #define _WIN32_WINNT 0x601 // minimal deployment is Windows 7
+ #endif
+-#include <sdkddkver.h> // for WINVER
++//#include <sdkddkver.h> // for WINVER
+ #endif
+ 
+ #if !MSWindows
+diff -ur 1/photoshopapi/pica_sp/SPProps.h 2/photoshopapi/pica_sp/SPProps.h
+--- 1/photoshopapi/pica_sp/SPProps.h	2016-06-06 10:45:38.000000000 -0400
++++ 2/photoshopapi/pica_sp/SPProps.h	2016-07-23 14:14:03.395984105 -0400
+@@ -28,7 +28,7 @@
+  **/
+ 
+ #include "SPTypes.h"
+-#include "SPMdata.h"
++#include "SPMData.h"
+ #include "SPPiPL.h"
+ 
+ #ifdef __cplusplus

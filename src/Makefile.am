@@ -24,7 +24,7 @@ pspi_SOURCES = \
 	interface.h	\
 	main.c		\
 	main.h		\
-	pspi.c		\
+	pspi.c	\
 	pspi.h		\
 	plugin-intl.h
 
@@ -33,7 +33,8 @@ pspi_LDFLAGS = $(mwindows)
 AM_CPPFLAGS = \
 	-DPSPI_WITH_DEBUGGING \
 	@GIMP_CFLAGS@	\
-	$(PSSDK_CFLAGS)
+	$(PSSDK_CFLAGS) \
+	-fPIC
 
 LDADD = \
 	$(GIMP_LIBS)	\
@@ -42,14 +43,8 @@ LDADD = \
 AM_CPPFLAGS += \
 	-DLOCALEDIR=\""$(LOCALEDIR)"\"
 
-piproxy.8bf : piproxy.c proxies.c
-	$(CC) -shared -DENTRYPOINT=$(ENTRYPOINT) $(GLIB_CFLAGS) $(PSSDK_CFLAGS) -o $@ piproxy.c $(GLIB_LIBS)
-
-proxies.c : genproxies.m4
-	m4 genproxies.m4 >$@
-
 install-exec-hook:
 if OS_WIN32
 else
-	$(INSTALL) pspi.exe.so $(bindir)	
+	$(INSTALL) pspi.exe.so $(bindir)
 endif

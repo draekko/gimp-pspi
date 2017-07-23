@@ -1,0 +1,23 @@
+= How to use a binary Linux distribution of pspi
+
+
+You should have three files: kll
+* README.linux: This file
+* pspi: A small shell script
+* pspi.exe.so: The binary that wine runs
+
+== Steps
+
+* Copy pspi and pspi.exe.so to your personal GIMP plug-ins folder, typically ~/.config/GIMP/2.9/plug-ins . 
+
+* When you run GIMP it will issue a warning "wire_read(): error" as
+pspi.exe.so isn't a GIMP plug-in.
+** This warning is harmless (GIMP just ignores that file then), but if you want to avoid it, move pspi.exe.so somewhere else and modify the pspi script to point to its new location instead.
+
+* After starting GIMP, go to the Xtns:Photoshop Plug-in Settings and enter the folder where you are going to keep the 3rd-party Photoshop plug-ins (.8bf files) that you want to use in GIMP.
+
+* Preferrably you should use an initially empty folder for this, and then install (copy) Photoshop plug-ins there one by one, verifying
+that each works. 
+** It isn't really useful to rush and install a shitload of Photoshop plug-ins at once and assume they all will work under pspi.
+
+--tml@iki.fi
